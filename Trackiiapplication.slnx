@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Trackii.Api/Trackii.Api.csproj" Id="f13e57f5-24e8-4e87-a363-7ca4e7f93c07" />
+  <Project Path="Trackii.App/Trackii.App.csproj" Id="5f716cf7-8ac1-4685-bf04-da3de5131f30" />
+</Solution>
