@@ -39,6 +39,11 @@ public sealed class AuthController : ControllerBase
             return BadRequest("Usuario y contraseña son requeridos.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.DeviceUid))
+        {
+            return BadRequest("Device UID es requerido.");
+        }
+
         var tokenExists = await _dbContext.Tokens
             .AnyAsync(token => token.Code == request.TokenCode, cancellationToken);
 
@@ -83,21 +88,21 @@ public sealed class AuthController : ControllerBase
             {
                 DeviceUid = request.DeviceUid.Trim(),
                 LocationId = request.LocationId,
-                UserId = user.Id,
                 Name = string.IsNullOrWhiteSpace(request.DeviceName) ? request.Username.Trim() : request.DeviceName.Trim(),
-                Active = true
+                Active = true,
+                User = user
             };
             _dbContext.Devices.Add(device);
         }
         else
         {
-            if (device.UserId != 0 && device.UserId != user.Id)
+            if (device.UserId.HasValue && device.UserId != user.Id)
             {
                 return Conflict("El dispositivo ya está asociado a otro usuario.");
             }
 
             device.LocationId = request.LocationId;
-            device.UserId = user.Id;
+            device.User = user;
             device.Name = string.IsNullOrWhiteSpace(request.DeviceName) ? device.Name : request.DeviceName.Trim();
             device.Active = true;
         }

@@ -11,7 +11,7 @@ namespace Trackii.App
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(25);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
@@ -312,7 +312,9 @@ namespace Trackii.App
                 {
                     _maxQuantity = null;
                     QuantityEntry.Text = string.Empty;
-                    QuantityHintLabel.Text = response.Message ?? "Orden no encontrada.";
+                    QuantityHintLabel.Text = _session.LocationId == 1
+                        ? "Orden no encontrada. Alloy puede crearla al registrar."
+                        : response.Message ?? "Orden no encontrada.";
                     return;
                 }
 
@@ -372,9 +374,21 @@ namespace Trackii.App
                 return;
             }
 
-            if (_workOrderContext is null || !_workOrderContext.CanProceed)
+            if (_workOrderContext is null)
             {
-                StatusLabel.Text = _workOrderContext?.Message ?? "Orden no válida.";
+                StatusLabel.Text = "Orden no válida.";
+                return;
+            }
+
+            if (!_workOrderContext.Found && _session.LocationId != 1)
+            {
+                StatusLabel.Text = _workOrderContext.Message ?? "Orden no encontrada.";
+                return;
+            }
+
+            if (_workOrderContext.Found && !_workOrderContext.CanProceed)
+            {
+                StatusLabel.Text = _workOrderContext.Message ?? "Orden no válida.";
                 return;
             }
 
@@ -408,7 +422,7 @@ namespace Trackii.App
                 }, CancellationToken.None);
                 StatusLabel.Text = response.Message;
                 DetectionLabel.Text = "Registro exitoso.";
-                await LoadWorkOrderContextAsync(OrderEntry.Text.Trim());
+                ResetForm();
             }
             catch (Exception ex)
             {
@@ -492,6 +506,13 @@ namespace Trackii.App
             }
         }
 
+        private void OnPendingClicked(object? sender, EventArgs e)
+        {
+            ResetForm();
+            StatusLabel.Text = "Registro marcado como pendiente.";
+            DetectionLabel.Text = "Campos reiniciados.";
+        }
+
         private void StartScanAnimation()
         {
             _animationCts?.Cancel();
@@ -562,6 +583,20 @@ namespace Trackii.App
         {
             _detectedCts?.Cancel();
             _detectedCts = null;
+        }
+
+        private void ResetForm()
+        {
+            OrderEntry.Text = string.Empty;
+            PartEntry.Text = string.Empty;
+            QuantityEntry.Text = string.Empty;
+            QuantityHintLabel.Text = string.Empty;
+            AreaEntry.Text = "-";
+            FamilyEntry.Text = "-";
+            SubfamilyEntry.Text = "-";
+            _partInfo = null;
+            _workOrderContext = null;
+            _maxQuantity = null;
         }
     }
 }

@@ -41,6 +41,7 @@ public partial class LoginPage : ContentPage
             var response = await _apiClient.LoginAsync(request, CancellationToken.None);
             _session.SetLoggedIn(response.UserId, response.Username, response.DeviceId, response.DeviceName, response.LocationId, response.LocationName);
             await DisplayAlert("Login", $"Bienvenido {response.Username}", "OK");
+            await Shell.Current.GoToAsync("//Scanner");
         }
         catch (Exception ex)
         {

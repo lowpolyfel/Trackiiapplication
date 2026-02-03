@@ -73,7 +73,7 @@ public partial class RegisterPage : ContentPage
                 : request.DeviceName;
             _session.SetLoggedIn(response.UserId, request.Username, response.DeviceId, deviceName, location.Id, location.Name);
             await DisplayAlert("Registro", $"Registro completado. Usuario {response.UserId}", "OK");
-            await Shell.Current.GoToAsync("..");
+            await Shell.Current.GoToAsync("//Scanner");
         }
         catch (Exception ex)
         {
