@@ -78,6 +78,7 @@ public sealed class AuthController : ControllerBase
             {
                 DeviceUid = request.DeviceUid.Trim(),
                 LocationId = request.LocationId,
+                UserId = user.Id,
                 Name = string.IsNullOrWhiteSpace(request.DeviceName) ? request.Username.Trim() : request.DeviceName.Trim(),
                 Active = true
             };
@@ -85,7 +86,13 @@ public sealed class AuthController : ControllerBase
         }
         else
         {
+            if (device.UserId != 0 && device.UserId != user.Id)
+            {
+                return Conflict("El dispositivo ya está asociado a otro usuario.");
+            }
+
             device.LocationId = request.LocationId;
+            device.UserId = user.Id;
             device.Name = string.IsNullOrWhiteSpace(request.DeviceName) ? device.Name : request.DeviceName.Trim();
             device.Active = true;
         }
@@ -103,6 +110,11 @@ public sealed class AuthController : ControllerBase
             return BadRequest("Usuario y contraseña son requeridos.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.DeviceUid))
+        {
+            return BadRequest("Device UID es requerido.");
+        }
+
         var user = await _dbContext.Users
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.Active, cancellationToken);
 
@@ -117,6 +129,22 @@ public sealed class AuthController : ControllerBase
             return Unauthorized("Credenciales inválidas.");
         }
 
-        return Ok(new LoginResponse(user.Id, user.Username, user.RoleId));
+        var device = await _dbContext.Devices
+            .Include(d => d.Location)
+            .FirstOrDefaultAsync(d => d.DeviceUid == request.DeviceUid && d.UserId == user.Id && d.Active, cancellationToken);
+
+        if (device is null || device.Location is null)
+        {
+            return Unauthorized("Dispositivo no vinculado al usuario.");
+        }
+
+        return Ok(new LoginResponse(
+            user.Id,
+            user.Username,
+            user.RoleId,
+            device.Id,
+            device.Name ?? "Dispositivo",
+            device.LocationId,
+            device.Location.Name));
     }
 }
