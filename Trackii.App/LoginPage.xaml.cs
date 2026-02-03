@@ -7,11 +7,13 @@ namespace Trackii.App;
 public partial class LoginPage : ContentPage
 {
     private readonly ApiClient _apiClient;
+    private readonly AppSession _session;
 
     public LoginPage()
     {
         InitializeComponent();
         _apiClient = App.Services.GetRequiredService<ApiClient>();
+        _session = App.Services.GetRequiredService<AppSession>();
     }
 
     private async void OnLoginClicked(object sender, EventArgs e)
@@ -27,6 +29,7 @@ public partial class LoginPage : ContentPage
         try
         {
             var response = await _apiClient.LoginAsync(request, CancellationToken.None);
+            _session.SetLoggedIn(response.Username, _session.DeviceName, _session.LocationName);
             await DisplayAlert("Login", $"Bienvenido {response.Username}", "OK");
         }
         catch (Exception ex)
