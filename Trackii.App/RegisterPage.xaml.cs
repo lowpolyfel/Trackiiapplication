@@ -28,7 +28,7 @@ public partial class RegisterPage : ContentPage
         try
         {
             _locations = await _apiClient.GetLocationsAsync(CancellationToken.None);
-            LocationPicker.ItemsSource = _locations;
+            LocationPicker.ItemsSource = _locations.ToList();
         }
         catch (Exception ex)
         {

@@ -7,7 +7,7 @@ public sealed class DeviceIdService : IDeviceIdService
 {
     public Task<string> GetDeviceIdAsync()
     {
-        var id = Settings.Secure.GetString(Android.App.Application.Context.ContentResolver, Settings.Secure.AndroidId);
+        var id = Settings.Secure.GetString(global::Android.App.Application.Context.ContentResolver, Settings.Secure.AndroidId);
         return Task.FromResult(id ?? string.Empty);
     }
 }
