@@ -41,6 +41,12 @@
                         <Label x:Name="DetectedTextLabel" Text="Código detectado" TextColor="White" FontAttributes="Bold" />
                     </HorizontalStackLayout>
                 </Frame>
+                <Grid x:Name="LoadingOverlay" BackgroundColor="#CCFFFFFF" IsVisible="False">
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                        <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="#2563EB" />
+                        <Label Text="Cargando datos..." TextColor="#0F172A" FontAttributes="Bold" />
+                    </VerticalStackLayout>
+                </Grid>
             </Grid>
         </Frame>
 
