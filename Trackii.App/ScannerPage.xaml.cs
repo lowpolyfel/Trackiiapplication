@@ -20,7 +20,8 @@ namespace Trackii.App
                 AutoRotate = true,
                 TryHarder = true,
                 TryInverted = true,
-                Multiple = false
+                Multiple = false,
+                Formats = BarcodeFormats.All
             };
         }
 
@@ -36,7 +37,15 @@ namespace Trackii.App
             }
 
             StatusLabel.Text = "Listo para escanear";
+            BarcodeReader.IsDetecting = false;
+            await Task.Delay(200);
             BarcodeReader.IsDetecting = true;
+        }
+
+        protected override void OnDisappearing()
+        {
+            BarcodeReader.IsDetecting = false;
+            base.OnDisappearing();
         }
 
         private void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
