@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Trackii.App.Models;
@@ -17,8 +18,9 @@ namespace Trackii.App
         private CancellationTokenSource? _detectedCts;
         private readonly AppSession _session;
         private readonly ApiClient _apiClient;
-        private readonly SemaphoreSlim _scanLock = new(1, 1);
+        private readonly SemaphoreSlim _processingLock = new(1, 1);
         private bool _isCapturing;
+        private bool _isProcessing;
         private string? _lastResult;
         private DateTime _lastScanAt;
         private DateTime _lastDetectionAt;
@@ -97,13 +99,13 @@ namespace Trackii.App
                     if (OrderRegex.IsMatch(result))
                     {
                         OrderEntry.Text = result;
-                        await LoadWorkOrderContextAsync(result);
                     }
                     else
                     {
                         PartEntry.Text = result;
-                        await LoadPartInfoAsync(result);
                     }
+
+                    await TryFinalizeScanAsync();
                 });
             }
             catch (Exception ex)
@@ -266,7 +268,7 @@ namespace Trackii.App
 
             if (OrderRegex.IsMatch(e.NewTextValue))
             {
-                await LoadWorkOrderContextAsync(e.NewTextValue);
+                await TryFinalizeScanAsync();
             }
         }
 
@@ -277,7 +279,7 @@ namespace Trackii.App
                 return;
             }
 
-            await LoadPartInfoAsync(e.NewTextValue);
+            await TryFinalizeScanAsync();
         }
 
         private async Task LoadPartInfoAsync(string partNumber)
@@ -353,6 +355,50 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"Error al consultar orden: {ex.Message}";
             }
+        }
+
+        private async Task TryFinalizeScanAsync()
+        {
+            var order = OrderEntry.Text?.Trim();
+            var part = PartEntry.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(order) || string.IsNullOrWhiteSpace(part))
+            {
+                return;
+            }
+
+            if (!await _processingLock.WaitAsync(0))
+            {
+                return;
+            }
+
+            try
+            {
+                if (_isProcessing)
+                {
+                    return;
+                }
+
+                _isProcessing = true;
+                await SetLoadingStateAsync(true);
+
+                await LoadWorkOrderContextAsync(order);
+                await LoadPartInfoAsync(part);
+            }
+            finally
+            {
+                _isProcessing = false;
+                await SetLoadingStateAsync(false);
+                _processingLock.Release();
+            }
+        }
+
+        private Task SetLoadingStateAsync(bool isLoading)
+        {
+            return MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                LoadingOverlay.IsVisible = isLoading;
+                LoadingIndicator.IsRunning = isLoading;
+            });
         }
 
         private void OnQuantityChanged(object? sender, TextChangedEventArgs e)
