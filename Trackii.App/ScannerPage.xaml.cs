@@ -11,12 +11,13 @@ namespace Trackii.App
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(25);
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
         private readonly AppSession _session;
         private readonly ApiClient _apiClient;
+        private readonly SemaphoreSlim _scanLock = new(1, 1);
         private bool _isCapturing;
         private string? _lastResult;
         private DateTime _lastScanAt;
@@ -70,24 +71,33 @@ namespace Trackii.App
                 return;
             }
 
-            var result = e.Results?.FirstOrDefault()?.Value;
+            var result = e.Results?.FirstOrDefault()?.Value?.Trim();
             if (string.IsNullOrWhiteSpace(result))
             {
                 return;
             }
 
-            _lastDetectionAt = DateTime.UtcNow;
-            var now = _lastDetectionAt;
-            if (result == _lastResult && now - _lastScanAt < ScanCooldown)
+            if (!await _scanLock.WaitAsync(0))
             {
                 return;
             }
 
-            _lastResult = result;
-            _lastScanAt = now;
-
             try
             {
+                _lastDetectionAt = DateTime.UtcNow;
+                var now = _lastDetectionAt;
+                if (result == _lastResult && now - _lastScanAt < ScanCooldown)
+                {
+                    return;
+                }
+
+                _lastResult = result;
+                _lastScanAt = now;
+                if (_barcodeReader is not null)
+                {
+                    _barcodeReader.IsDetecting = false;
+                }
+
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
                     StatusLabel.Text = $"Leído: {result}";
@@ -108,6 +118,15 @@ namespace Trackii.App
             catch (Exception ex)
             {
                 StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
+            }
+            finally
+            {
+                if (_barcodeReader is not null)
+                {
+                    _barcodeReader.IsDetecting = _isCapturing;
+                }
+
+                _scanLock.Release();
             }
         }
 
@@ -176,10 +195,10 @@ namespace Trackii.App
                 Options = new BarcodeReaderOptions
                 {
                     AutoRotate = true,
-                    TryHarder = false,
+                    TryHarder = true,
                     TryInverted = true,
                     Multiple = false,
-
+                    Formats = BarcodeFormats.All
                 }
             };
 
