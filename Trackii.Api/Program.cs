@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Trackii.Api.Data;
 using Trackii.Api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
@@ -28,7 +28,17 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<TrackiiDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+// Add Identity and Password Hasher
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
+// Configure logging
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders();  // Limpia las configuraciones anteriores
+    logging.AddConsole();      // Habilita el log en la consola
+    logging.AddDebug();        // Habilita los logs de depuración
+    logging.AddEventSourceLogger();  // Agrega el soporte para eventos
+});
 
 var app = builder.Build();
 
@@ -45,4 +55,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Run the application
 app.Run();
