@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Trackii.Api.Models;
+using RouteModel = Trackii.Api.Models.Route;
 
 namespace Trackii.Api.Data;
 
@@ -18,7 +19,7 @@ public sealed class TrackiiDbContext : DbContext
     public DbSet<Family> Families => Set<Family>();
     public DbSet<Subfamily> Subfamilies => Set<Subfamily>();
     public DbSet<Product> Products => Set<Product>();
-    public DbSet<Route> Routes => Set<Route>();
+    public DbSet<RouteModel> Routes => Set<RouteModel>();
     public DbSet<RouteStep> RouteSteps => Set<RouteStep>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
     public DbSet<WipItem> WipItems => Set<WipItem>();
@@ -140,7 +141,7 @@ public sealed class TrackiiDbContext : DbContext
                 .HasForeignKey(e => e.SubfamilyId);
         });
 
-        modelBuilder.Entity<Route>(entity =>
+        modelBuilder.Entity<RouteModel>(entity =>
         {
             entity.ToTable("route");
             entity.HasKey(e => e.Id);
