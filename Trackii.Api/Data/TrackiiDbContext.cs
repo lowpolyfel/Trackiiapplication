@@ -86,7 +86,8 @@ public sealed class TrackiiDbContext : DbContext
                 .HasForeignKey(e => e.LocationId);
             entity.HasOne(e => e.User)
                 .WithMany(u => u.Devices)
-                .HasForeignKey(e => e.UserId);
+                .HasForeignKey(e => e.UserId)
+                .IsRequired(false);
         });
 
         modelBuilder.Entity<Area>(entity =>
