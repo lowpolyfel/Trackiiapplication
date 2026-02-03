@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Trackii.App.RegisterPage"
+             Title="Registro">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Label Text="Registro" FontSize="24" FontAttributes="Bold" />
+            <Label Text="Completa los datos para registrar la tableta" FontSize="14" TextColor="Gray" />
+
+            <Entry x:Name="TokenEntry" Placeholder="Token" />
+            <Picker x:Name="LocationPicker" Title="Selecciona la localidad" />
+            <Entry x:Name="DeviceNameEntry" Placeholder="Nombre de la tableta" />
+            <Entry x:Name="UsernameEntry" Placeholder="Usuario" />
+            <Entry x:Name="PasswordEntry" Placeholder="Contraseña" IsPassword="True" />
+
+            <Button Text="Registrar" Clicked="OnRegisterClicked" />
+            <Button Text="Regresar" Clicked="OnBackClicked" />
+
+            <Label x:Name="StatusLabel" TextColor="Red" FontSize="12" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

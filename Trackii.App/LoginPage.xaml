@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Trackii.App.LoginPage"
+             Title="Login">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Label Text="Trackii" FontSize="28" FontAttributes="Bold" />
+            <Label Text="Ingresa con tu usuario" FontSize="14" TextColor="Gray" />
+
+            <Entry x:Name="UsernameEntry" Placeholder="Usuario" />
+            <Entry x:Name="PasswordEntry" Placeholder="Contraseña" IsPassword="True" />
+
+            <Button Text="Iniciar sesión" Clicked="OnLoginClicked" />
+            <Button Text="Crear cuenta" Clicked="OnRegisterTapped" />
+
+            <Label x:Name="StatusLabel" TextColor="Red" FontSize="12" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
