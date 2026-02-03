@@ -63,7 +63,7 @@ namespace Trackii.App
             base.OnDisappearing();
         }
 
-        private void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
+        private async void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
         {
             if (!_isCapturing)
             {
@@ -86,22 +86,29 @@ namespace Trackii.App
             _lastResult = result;
             _lastScanAt = now;
 
-            MainThread.BeginInvokeOnMainThread(async () =>
+            try
             {
-                StatusLabel.Text = $"Leído: {result}";
-                DetectionLabel.Text = "Detectado al instante.";
-                _ = ShowDetectedAsync(result);
-                if (OrderRegex.IsMatch(result))
+                await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
-                    OrderEntry.Text = result;
-                    _ = LoadWorkOrderContextAsync(result);
-                }
-                else
-                {
-                    PartEntry.Text = result;
-                    _ = LoadPartInfoAsync(result);
-                }
-            });
+                    StatusLabel.Text = $"Leído: {result}";
+                    DetectionLabel.Text = "Detectado al instante.";
+                    await ShowDetectedAsync(result);
+                    if (OrderRegex.IsMatch(result))
+                    {
+                        OrderEntry.Text = result;
+                        await LoadWorkOrderContextAsync(result);
+                    }
+                    else
+                    {
+                        PartEntry.Text = result;
+                        await LoadPartInfoAsync(result);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
+            }
         }
 
         private void OnTorchClicked(object? sender, EventArgs e)
