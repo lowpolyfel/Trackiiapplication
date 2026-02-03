@@ -17,6 +17,7 @@ namespace Trackii.App
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _scannerCts;
         private CancellationTokenSource? _animationCts;
+        private CancellationTokenSource? _detectedCts;
         private readonly AppSession _session;
         private string? _lastResult;
         private DateTime _lastScanAt;
@@ -55,6 +56,7 @@ namespace Trackii.App
         {
             StopScanner();
             StopScanAnimation();
+            CancelDetectedOverlay();
             base.OnDisappearing();
         }
 
@@ -80,7 +82,7 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"Leído: {result}";
                 DetectionLabel.Text = "Detectado al instante.";
-                await ShowDetectedAsync(result);
+                _ = ShowDetectedAsync(result);
                 if (OrderRegex.IsMatch(result))
                 {
                     OrderEntry.Text = result;
@@ -179,6 +181,7 @@ namespace Trackii.App
             _scannerCts = null;
 
             DisposeScanner();
+            CancelDetectedOverlay();
         }
 
         private void RestartScanner(string status)
@@ -233,14 +236,14 @@ namespace Trackii.App
             {
                 AuthTitleLabel.Text = _session.DeviceName;
                 AuthSubtitleLabel.Text = $"{_session.LocationName} • {_session.Username}";
-                AuthCard.BackgroundColor = Color.FromArgb("#1F2937");
+                AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
                 LoginButton.IsVisible = false;
             }
             else
             {
                 AuthTitleLabel.Text = "Inicia sesión";
                 AuthSubtitleLabel.Text = "Logeate acá para continuar.";
-                AuthCard.BackgroundColor = Color.FromArgb("#171721");
+                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
                 LoginButton.IsVisible = true;
             }
         }
@@ -278,19 +281,43 @@ namespace Trackii.App
                 {
                     break;
                 }
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
             }
         }
 
         private async Task ShowDetectedAsync(string result)
         {
-            DetectedTextLabel.Text = $"Detectado: {result}";
-            DetectedOverlay.Opacity = 0;
-            DetectedOverlay.Scale = 0.9;
-            await Task.WhenAll(
-                DetectedOverlay.FadeTo(1, 120, Easing.CubicOut),
-                DetectedOverlay.ScaleTo(1, 120, Easing.CubicOut));
-            await Task.Delay(350);
-            await DetectedOverlay.FadeTo(0, 400, Easing.CubicIn);
+            CancelDetectedOverlay();
+            _detectedCts = new CancellationTokenSource();
+            var token = _detectedCts.Token;
+            try
+            {
+                DetectedTextLabel.Text = $"Detectado: {result}";
+                DetectedOverlay.Opacity = 0;
+                DetectedOverlay.Scale = 0.9;
+                await Task.WhenAll(
+                    DetectedOverlay.FadeTo(1, 120, Easing.CubicOut),
+                    DetectedOverlay.ScaleTo(1, 120, Easing.CubicOut));
+                await Task.Delay(350, token);
+                await DetectedOverlay.FadeTo(0, 400, Easing.CubicIn);
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancelled animation
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore disposed views
+            }
+        }
+
+        private void CancelDetectedOverlay()
+        {
+            _detectedCts?.Cancel();
+            _detectedCts = null;
         }
     }
 }
