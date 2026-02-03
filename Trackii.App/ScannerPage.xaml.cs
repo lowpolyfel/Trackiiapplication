@@ -172,7 +172,7 @@ namespace Trackii.App
                     TryHarder = false,
                     TryInverted = true,
                     Multiple = false,
-                    Formats = BarcodeFormats.All
+
                 }
             };
 
