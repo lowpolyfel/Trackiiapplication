@@ -9,4 +9,5 @@ public sealed class User
     public bool Active { get; set; }
 
     public Role? Role { get; set; }
+    public ICollection<Device> Devices { get; set; } = new List<Device>();
 }

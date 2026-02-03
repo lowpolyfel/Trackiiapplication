@@ -7,12 +7,14 @@ namespace Trackii.App;
 public partial class LoginPage : ContentPage
 {
     private readonly ApiClient _apiClient;
+    private readonly IDeviceIdService _deviceIdService;
     private readonly AppSession _session;
 
     public LoginPage()
     {
         InitializeComponent();
         _apiClient = App.Services.GetRequiredService<ApiClient>();
+        _deviceIdService = App.Services.GetRequiredService<IDeviceIdService>();
         _session = App.Services.GetRequiredService<AppSession>();
     }
 
@@ -20,16 +22,24 @@ public partial class LoginPage : ContentPage
     {
         StatusLabel.Text = string.Empty;
 
+        var deviceId = await _deviceIdService.GetDeviceIdAsync();
+        if (string.IsNullOrWhiteSpace(deviceId))
+        {
+            StatusLabel.Text = "No se pudo obtener el Android ID.";
+            return;
+        }
+
         var request = new LoginRequest
         {
             Username = UsernameEntry.Text?.Trim() ?? string.Empty,
-            Password = PasswordEntry.Text ?? string.Empty
+            Password = PasswordEntry.Text ?? string.Empty,
+            DeviceUid = deviceId
         };
 
         try
         {
             var response = await _apiClient.LoginAsync(request, CancellationToken.None);
-            _session.SetLoggedIn(response.Username, _session.DeviceName, _session.LocationName);
+            _session.SetLoggedIn(response.Username, response.DeviceName, response.LocationName);
             await DisplayAlert("Login", $"Bienvenido {response.Username}", "OK");
         }
         catch (Exception ex)

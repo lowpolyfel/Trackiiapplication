@@ -68,7 +68,10 @@ public partial class RegisterPage : ContentPage
         try
         {
             var response = await _apiClient.RegisterAsync(request, CancellationToken.None);
-            _session.SetLoggedIn(request.Username, request.DeviceName, location.Name);
+            var deviceName = string.IsNullOrWhiteSpace(request.DeviceName)
+                ? request.Username
+                : request.DeviceName;
+            _session.SetLoggedIn(request.Username, deviceName, location.Name);
             await DisplayAlert("Registro", $"Registro completado. Usuario {response.UserId}", "OK");
             await Shell.Current.GoToAsync("..");
         }
