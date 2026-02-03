@@ -78,7 +78,7 @@ namespace Trackii.App
             _lastResult = result;
             _lastScanAt = now;
 
-            MainThread.BeginInvokeOnMainThread(() =>
+            MainThread.BeginInvokeOnMainThread(async () =>
             {
                 StatusLabel.Text = $"Leído: {result}";
                 DetectionLabel.Text = "Detectado al instante.";
