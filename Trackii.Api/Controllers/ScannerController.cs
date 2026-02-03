@@ -300,6 +300,18 @@ public sealed class ScannerController : ControllerBase
             return Unauthorized("Dispositivo inválido.");
         }
 
+        async Task LogSkipStepAsync(uint wipItemId, uint routeStepId)
+        {
+            _dbContext.ScanEvents.Add(new ScanEvent
+            {
+                WipItemId = wipItemId,
+                RouteStepId = routeStepId,
+                ScanType = "ERROR",
+                Ts = DateTime.UtcNow
+            });
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
         var workOrder = await _dbContext.WorkOrders
             .Include(wo => wo.Product)
             .ThenInclude(p => p.Subfamily)
@@ -307,9 +319,13 @@ public sealed class ScannerController : ControllerBase
 
         if (workOrder is null)
         {
-            if (device.Location?.Name is null || !device.Location.Name.Equals("Alloy", StringComparison.OrdinalIgnoreCase))
+            var canCreateWorkOrder = device.LocationId == 1
+                || (device.Location?.Name is not null
+                    && device.Location.Name.Equals("Alloy", StringComparison.OrdinalIgnoreCase));
+
+            if (!canCreateWorkOrder)
             {
-                return BadRequest("Solo la localidad Alloy puede crear una orden.");
+                return BadRequest("Orden no encontrada.");
             }
 
             var product = await _dbContext.Products
@@ -420,11 +436,17 @@ public sealed class ScannerController : ControllerBase
 
         if (targetStep.LocationId != device.LocationId)
         {
+            if (wipItem is not null)
+            {
+                var attemptedStep = steps.FirstOrDefault(step => step.LocationId == device.LocationId) ?? targetStep;
+                await LogSkipStepAsync(wipItem.Id, attemptedStep.Id);
+            }
             return BadRequest("El dispositivo no corresponde al paso actual.");
         }
 
         if (wipItem is not null && wipItem.StepExecutions.Any(exec => exec.RouteStepId == targetStep.Id))
         {
+            await LogSkipStepAsync(wipItem.Id, targetStep.Id);
             return BadRequest("El paso ya fue registrado.");
         }
 

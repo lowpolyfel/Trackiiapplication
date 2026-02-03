@@ -90,7 +90,7 @@
                 </Grid>
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <Button x:Name="ReworkButton" Text="Rework" BackgroundColor="#F97316" TextColor="White" CornerRadius="14" Clicked="OnReworkClicked" />
-                    <Button Grid.Column="1" Text="Pendiente 2" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" IsEnabled="False" />
+                    <Button x:Name="PendingButton" Grid.Column="1" Text="Pendiente" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" Clicked="OnPendingClicked" />
                 </Grid>
             </VerticalStackLayout>
         </Frame>
