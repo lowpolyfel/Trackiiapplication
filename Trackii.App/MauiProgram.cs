@@ -2,6 +2,7 @@
 using Trackii.App.Configuration;
 using Trackii.App.Services;
 using ZXing.Net.Maui;
+using ZXing.Net.Maui.Controls;
 
 namespace Trackii.App
 {
