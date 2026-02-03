@@ -12,7 +12,7 @@ namespace Trackii.App
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(25);
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
@@ -112,6 +112,15 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
             }
+            finally
+            {
+                if (_barcodeReader is not null)
+                {
+                    _barcodeReader.IsDetecting = _isCapturing;
+                }
+
+                _scanLock.Release();
+            }
         }
 
         private void OnTorchClicked(object? sender, EventArgs e)
@@ -179,7 +188,7 @@ namespace Trackii.App
                 Options = new BarcodeReaderOptions
                 {
                     AutoRotate = true,
-                    TryHarder = false,
+                    TryHarder = true,
                     TryInverted = true,
                     Multiple = false,
                 }
