@@ -8,6 +8,7 @@ public partial class RegisterPage : ContentPage
 {
     private readonly ApiClient _apiClient;
     private readonly IDeviceIdService _deviceIdService;
+    private readonly AppSession _session;
     private IReadOnlyList<LocationDto> _locations = Array.Empty<LocationDto>();
 
     public RegisterPage()
@@ -15,6 +16,7 @@ public partial class RegisterPage : ContentPage
         InitializeComponent();
         _apiClient = App.Services.GetRequiredService<ApiClient>();
         _deviceIdService = App.Services.GetRequiredService<IDeviceIdService>();
+        _session = App.Services.GetRequiredService<AppSession>();
     }
 
     protected override async void OnAppearing()
@@ -66,6 +68,7 @@ public partial class RegisterPage : ContentPage
         try
         {
             var response = await _apiClient.RegisterAsync(request, CancellationToken.None);
+            _session.SetLoggedIn(request.Username, request.DeviceName, location.Name);
             await DisplayAlert("Registro", $"Registro completado. Usuario {response.UserId}", "OK");
             await Shell.Current.GoToAsync("..");
         }

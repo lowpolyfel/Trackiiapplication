@@ -24,6 +24,7 @@ namespace Trackii.App
             {
                 BaseAddress = new Uri(AppConfig.ApiBaseUrl)
             });
+            builder.Services.AddSingleton<AppSession>();
             builder.Services.AddSingleton<ApiClient>();
 #if ANDROID
             builder.Services.AddSingleton<IDeviceIdService, Platforms.Android.DeviceIdService>();
