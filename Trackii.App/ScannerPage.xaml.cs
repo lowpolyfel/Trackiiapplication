@@ -13,9 +13,11 @@ namespace Trackii.App
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
         private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(3);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
+        private CancellationTokenSource? _idleResetCts;
         private readonly AppSession _session;
         private readonly ApiClient _apiClient;
         private readonly SemaphoreSlim _scanLock = new(1, 1);
@@ -55,6 +57,7 @@ namespace Trackii.App
             DetectionLabel.Text = "Listo para detectar códigos.";
             StartScanner();
             StartScanAnimation();
+            ScheduleIdleReset();
         }
 
         protected override void OnDisappearing()
@@ -62,6 +65,7 @@ namespace Trackii.App
             StopScanner();
             StopScanAnimation();
             CancelDetectedOverlay();
+            CancelIdleReset();
             base.OnDisappearing();
         }
 
@@ -89,6 +93,7 @@ namespace Trackii.App
 
                 _lastResult = result;
                 _lastScanAt = now;
+                ScheduleIdleReset();
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
@@ -172,6 +177,7 @@ namespace Trackii.App
 
             ScannerHost.Content = null;
             _barcodeReader = null;
+            CancelIdleReset();
         }
 
         private void StartScanner()
@@ -194,6 +200,49 @@ namespace Trackii.App
         {
             DisposeScanner();
             CancelDetectedOverlay();
+        }
+
+        private void ScheduleIdleReset()
+        {
+            CancelIdleReset();
+            _idleResetCts = new CancellationTokenSource();
+            _ = ResetAfterIdleAsync(_idleResetCts.Token);
+        }
+
+        private void CancelIdleReset()
+        {
+            _idleResetCts?.Cancel();
+            _idleResetCts = null;
+        }
+
+        private async Task ResetAfterIdleAsync(CancellationToken token)
+        {
+            try
+            {
+                await Task.Delay(IdleResetDelay, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (_barcodeReader is not null)
+                    {
+                        _barcodeReader.IsDetecting = true;
+                    }
+
+                    _lastResult = null;
+                    _lastScanAt = DateTime.MinValue;
+                    _lastDetectionAt = DateTime.MinValue;
+                    StatusLabel.Text = "Escaneo instantáneo activo";
+                    DetectionLabel.Text = "Listo para detectar códigos.";
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancelled reset
+            }
         }
 
         private void UpdateHeader()
