@@ -7,11 +7,7 @@
     Title="Scanner">
     <Grid RowDefinitions="2*,Auto,Auto,Auto" Padding="16" RowSpacing="12">
         <Frame Grid.Row="0" CornerRadius="16" HasShadow="False" Padding="0">
-            <zxing:CameraBarcodeReaderView
-                x:Name="BarcodeReader"
-                CameraLocation="Rear"
-                IsDetecting="True"
-                BarcodesDetected="OnBarcodesDetected" />
+            <ContentView x:Name="ScannerHost" />
         </Frame>
 
         <HorizontalStackLayout Grid.Row="1" Spacing="12">
