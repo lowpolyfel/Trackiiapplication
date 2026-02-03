@@ -13,13 +13,14 @@ namespace Trackii.App
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
         private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(3);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
+        private CancellationTokenSource? _idleResetCts;
         private readonly AppSession _session;
         private readonly ApiClient _apiClient;
-        private readonly SemaphoreSlim _processingLock = new(1, 1);
-        private bool _isCapturing;
+        private readonly SemaphoreSlim _scanLock = new(1, 1);
         private bool _isProcessing;
         private string? _lastResult;
         private DateTime _lastScanAt;
@@ -52,10 +53,11 @@ namespace Trackii.App
             }
 
             UpdateHeader();
-            StatusLabel.Text = "Escaneando automáticamente...";
-            DetectionLabel.Text = "Esperando código...";
+            StatusLabel.Text = "Escaneo instantáneo activo";
+            DetectionLabel.Text = "Listo para detectar códigos.";
             StartScanner();
             StartScanAnimation();
+            ScheduleIdleReset();
         }
 
         protected override void OnDisappearing()
@@ -63,16 +65,12 @@ namespace Trackii.App
             StopScanner();
             StopScanAnimation();
             CancelDetectedOverlay();
+            CancelIdleReset();
             base.OnDisappearing();
         }
 
         private async void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
         {
-            if (!_isCapturing)
-            {
-                return;
-            }
-
             var result = e.Results?.FirstOrDefault()?.Value?.Trim();
             if (string.IsNullOrWhiteSpace(result))
             {
@@ -81,6 +79,11 @@ namespace Trackii.App
 
             try
             {
+                if (_isProcessing)
+                {
+                    return;
+                }
+
                 _lastDetectionAt = DateTime.UtcNow;
                 var now = _lastDetectionAt;
                 if (result == _lastResult && now - _lastScanAt < ScanCooldown)
@@ -90,6 +93,7 @@ namespace Trackii.App
 
                 _lastResult = result;
                 _lastScanAt = now;
+                ScheduleIdleReset();
 
                 await MainThread.InvokeOnMainThreadAsync(async () =>
                 {
@@ -98,11 +102,25 @@ namespace Trackii.App
                     await ShowDetectedAsync(result);
                     if (OrderRegex.IsMatch(result))
                     {
-                        OrderEntry.Text = result;
+                        if (!string.Equals(OrderEntry.Text, result, StringComparison.Ordinal))
+                        {
+                            OrderEntry.Text = result;
+                        }
+                        else
+                        {
+                            return;
+                        }
                     }
                     else
                     {
-                        PartEntry.Text = result;
+                        if (!string.Equals(PartEntry.Text, result, StringComparison.Ordinal))
+                        {
+                            PartEntry.Text = result;
+                        }
+                        else
+                        {
+                            return;
+                        }
                     }
 
                     await TryFinalizeScanAsync();
@@ -112,41 +130,6 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
             }
-            finally
-            {
-                if (_barcodeReader is not null)
-                {
-                    _barcodeReader.IsDetecting = _isCapturing;
-                }
-
-                _scanLock.Release();
-            }
-        }
-
-        private void OnTorchClicked(object? sender, EventArgs e)
-        {
-            if (_barcodeReader is null)
-            {
-                StatusLabel.Text = "Cámara no disponible.";
-                return;
-            }
-
-            _barcodeReader.IsTorchOn = !_barcodeReader.IsTorchOn;
-            StatusLabel.Text = _barcodeReader.IsTorchOn ? "Linterna encendida" : "Linterna apagada";
-        }
-
-        private void OnRefocusClicked(object? sender, EventArgs e)
-        {
-            if (_barcodeReader is null)
-            {
-                StatusLabel.Text = "Cámara no disponible.";
-                return;
-            }
-
-            StatusLabel.Text = "Reenfocando...";
-            _barcodeReader.IsDetecting = true;
-            _isCapturing = true;
-            CaptureToggleButton.Text = "Pausar";
         }
 
         private async void OnLoginClicked(object? sender, EventArgs e)
@@ -164,21 +147,6 @@ namespace Trackii.App
             }
         }
 
-        private void OnCaptureToggleClicked(object? sender, EventArgs e)
-        {
-            if (_barcodeReader is null)
-            {
-                StatusLabel.Text = "Cámara no disponible.";
-                return;
-            }
-
-            _isCapturing = !_isCapturing;
-            _barcodeReader.IsDetecting = _isCapturing;
-            CaptureToggleButton.Text = _isCapturing ? "Pausar" : "Iniciar";
-            StatusLabel.Text = _isCapturing ? "Escaneando automáticamente..." : "Captura pausada";
-            DetectionLabel.Text = _isCapturing ? "Esperando código..." : "Pulsa iniciar para escanear";
-        }
-
         private void BuildScanner()
         {
             var reader = new CameraBarcodeReaderView
@@ -188,8 +156,8 @@ namespace Trackii.App
                 Options = new BarcodeReaderOptions
                 {
                     AutoRotate = true,
-                    TryHarder = true,
-                    TryInverted = true,
+                    TryHarder = false,
+                    TryInverted = false,
                     Multiple = false,
                 }
             };
@@ -209,6 +177,7 @@ namespace Trackii.App
 
             ScannerHost.Content = null;
             _barcodeReader = null;
+            CancelIdleReset();
         }
 
         private void StartScanner()
@@ -225,19 +194,54 @@ namespace Trackii.App
             {
                 _barcodeReader.IsDetecting = true;
             }
-
-            _isCapturing = true;
-            CaptureToggleButton.Text = "Pausar";
         }
 
         private void StopScanner()
         {
             DisposeScanner();
             CancelDetectedOverlay();
-            _isCapturing = false;
-            if (CaptureToggleButton is not null)
+        }
+
+        private void ScheduleIdleReset()
+        {
+            CancelIdleReset();
+            _idleResetCts = new CancellationTokenSource();
+            _ = ResetAfterIdleAsync(_idleResetCts.Token);
+        }
+
+        private void CancelIdleReset()
+        {
+            _idleResetCts?.Cancel();
+            _idleResetCts = null;
+        }
+
+        private async Task ResetAfterIdleAsync(CancellationToken token)
+        {
+            try
             {
-                CaptureToggleButton.Text = "Iniciar";
+                await Task.Delay(IdleResetDelay, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await MainThread.InvokeOnMainThreadAsync(() =>
+                {
+                    if (_barcodeReader is not null)
+                    {
+                        _barcodeReader.IsDetecting = true;
+                    }
+
+                    _lastResult = null;
+                    _lastScanAt = DateTime.MinValue;
+                    _lastDetectionAt = DateTime.MinValue;
+                    StatusLabel.Text = "Escaneo instantáneo activo";
+                    DetectionLabel.Text = "Listo para detectar códigos.";
+                });
+            }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancelled reset
             }
         }
 
@@ -366,7 +370,7 @@ namespace Trackii.App
                 return;
             }
 
-            if (!await _processingLock.WaitAsync(0))
+            if (!await _scanLock.WaitAsync(0))
             {
                 return;
             }
@@ -388,7 +392,7 @@ namespace Trackii.App
             {
                 _isProcessing = false;
                 await SetLoadingStateAsync(false);
-                _processingLock.Release();
+                _scanLock.Release();
             }
         }
 
