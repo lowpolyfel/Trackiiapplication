@@ -4,6 +4,8 @@
 <dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Se requiere la cámara para escanear códigos de barra.</string>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>1</integer>

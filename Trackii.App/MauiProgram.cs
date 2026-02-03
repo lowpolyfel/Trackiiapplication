@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Trackii.App.Configuration;
 using Trackii.App.Services;
+using ZXing.Net.Maui;
 
 namespace Trackii.App
 {
@@ -11,6 +12,7 @@ namespace Trackii.App
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseBarcodeReader()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
