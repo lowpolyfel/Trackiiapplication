@@ -22,8 +22,13 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest("Solicitud inválida.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.TokenCode))
         {
             return BadRequest("Token es requerido.");
@@ -103,8 +108,13 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest("Solicitud inválida.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
         {
             return BadRequest("Usuario y contraseña son requeridos.");

@@ -268,8 +268,13 @@ public sealed class ScannerController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> RegisterScan(RegisterScanRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> RegisterScan([FromBody] RegisterScanRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest("Solicitud inválida.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.WorkOrderNumber) || string.IsNullOrWhiteSpace(request.PartNumber))
         {
             return BadRequest("Orden y número de parte son requeridos.");
@@ -484,8 +489,13 @@ public sealed class ScannerController : ControllerBase
     }
 
     [HttpPost("scrap")]
-    public async Task<IActionResult> Scrap(ScrapRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Scrap([FromBody] ScrapRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest("Solicitud inválida.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.WorkOrderNumber))
         {
             return BadRequest("Orden requerida.");
@@ -537,8 +547,13 @@ public sealed class ScannerController : ControllerBase
     }
 
     [HttpPost("rework")]
-    public async Task<IActionResult> Rework(ReworkRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Rework([FromBody] ReworkRequest request, CancellationToken cancellationToken)
     {
+        if (request is null)
+        {
+            return BadRequest("Solicitud inválida.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.WorkOrderNumber))
         {
             return BadRequest("Orden requerida.");
