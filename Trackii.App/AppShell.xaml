@@ -7,6 +7,11 @@
     Title="Trackii">
 
     <ShellContent
+        Title="Scanner"
+        ContentTemplate="{DataTemplate local:ScannerPage}"
+        Route="Scanner" />
+
+    <ShellContent
         Title="Login"
         ContentTemplate="{DataTemplate local:LoginPage}"
         Route="Login" />
