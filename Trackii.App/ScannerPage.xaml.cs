@@ -12,7 +12,7 @@ namespace Trackii.App
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(250);
         private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(3);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
@@ -123,7 +123,6 @@ namespace Trackii.App
                         }
                     }
 
-                    await TryFinalizeScanAsync();
                 });
             }
             catch (Exception ex)
@@ -385,8 +384,9 @@ namespace Trackii.App
                 _isProcessing = true;
                 await SetLoadingStateAsync(true);
 
-                await LoadWorkOrderContextAsync(order);
-                await LoadPartInfoAsync(part);
+                await Task.WhenAll(
+                    LoadWorkOrderContextAsync(order),
+                    LoadPartInfoAsync(part));
             }
             finally
             {
@@ -563,16 +563,6 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"No se pudo registrar rework: {ex.Message}";
             }
-        }
-
-        private void OnPendingClicked(object? sender, EventArgs e)
-        {
-            _isProcessing = false;
-            _ = SetLoadingStateAsync(false);
-            CancelDetectedOverlay();
-            ResetForm();
-            StatusLabel.Text = "Registro marcado como pendiente.";
-            DetectionLabel.Text = "Campos reiniciados.";
         }
 
         private void StartScanAnimation()
