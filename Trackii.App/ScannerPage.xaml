@@ -5,9 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="#FFFFFF"
     Title="Scanner">
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Padding="20" RowSpacing="16">
-        <VerticalStackLayout Grid.Row="0" Spacing="8">
-            <Label Text="SCANNER" FontSize="24" FontAttributes="Bold" TextColor="#0F172A" />
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Padding="20" RowSpacing="16">
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
             <Frame x:Name="AuthCard" BackgroundColor="#F1F5F9" CornerRadius="16" HasShadow="False" Padding="12">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
                     <Label x:Name="AuthTitleLabel" Grid.Column="0" Text="Inicia sesión" FontAttributes="Bold" TextColor="#0F172A" />
@@ -15,26 +14,20 @@
                     <Label x:Name="AuthSubtitleLabel" Grid.Row="1" Grid.ColumnSpan="2" Text="Logeate acá para continuar." TextColor="#64748B" FontSize="12" />
                 </Grid>
             </Frame>
+            <Label Text="SCANNER" FontSize="24" FontAttributes="Bold" TextColor="#0F172A" />
         </VerticalStackLayout>
 
-        <Frame Grid.Row="1" BackgroundColor="#F8FAFC" CornerRadius="20" HasShadow="False" Padding="16">
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <Frame BackgroundColor="#E2E8F0" CornerRadius="12" HasShadow="False" Padding="8">
-                    <Label Text="⚡" FontSize="18" TextColor="#D97706" />
-                </Frame>
-                <VerticalStackLayout Grid.Column="1" Spacing="4">
-                    <Label x:Name="StatusLabel" Text="Escaneando automáticamente..." FontAttributes="Bold" TextColor="#0F172A" />
-                    <Label x:Name="DetectionLabel" Text="Esperando código..." TextColor="#64748B" FontSize="12" />
-                </VerticalStackLayout>
-                <Button x:Name="CaptureToggleButton" Grid.Column="2" Text="Pausar" Clicked="OnCaptureToggleClicked" BackgroundColor="#2563EB" TextColor="White" CornerRadius="14" HeightRequest="36" />
-            </Grid>
-        </Frame>
-
-        <Frame Grid.Row="2" BackgroundColor="#F1F5F9" CornerRadius="24" HasShadow="False" Padding="0">
+        <Frame Grid.Row="1" BackgroundColor="#F1F5F9" CornerRadius="24" HasShadow="False" Padding="0">
             <Grid>
                 <ContentView x:Name="ScannerHost" />
                 <BoxView BackgroundColor="#FFFFFF" Opacity="0.1" />
                 <BoxView x:Name="ScanLine" HeightRequest="3" BackgroundColor="#2563EB" Opacity="0.9" HorizontalOptions="Fill" VerticalOptions="Start" />
+                <Frame BackgroundColor="#FFFFFF" CornerRadius="14" Padding="8" Margin="16" HasShadow="False" HorizontalOptions="Start" VerticalOptions="Start">
+                    <VerticalStackLayout Spacing="2">
+                        <Label x:Name="StatusLabel" Text="Escaneo instantáneo activo" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Label x:Name="DetectionLabel" Text="Listo para detectar códigos." TextColor="#64748B" FontSize="12" />
+                    </VerticalStackLayout>
+                </Frame>
                 <Frame x:Name="DetectedOverlay" BackgroundColor="#16A34A" CornerRadius="16" Padding="12" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center">
                     <HorizontalStackLayout Spacing="8">
                         <Label Text="✅" TextColor="White" />
@@ -50,7 +43,7 @@
             </Grid>
         </Frame>
 
-        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
             <Frame BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="No. de orden" FontAttributes="Bold" TextColor="#0F172A" />
@@ -65,7 +58,7 @@
             </Frame>
         </Grid>
 
-        <Frame Grid.Row="4" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
+        <Frame Grid.Row="3" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
             <VerticalStackLayout Spacing="10">
                 <Label Text="Información del producto" FontAttributes="Bold" TextColor="#0F172A" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
@@ -85,7 +78,7 @@
             </VerticalStackLayout>
         </Frame>
 
-        <Frame Grid.Row="5" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
+        <Frame Grid.Row="4" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
             <VerticalStackLayout Spacing="12">
                 <Label Text="Cantidad de piezas" FontAttributes="Bold" TextColor="#0F172A" />
                 <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
@@ -95,8 +88,7 @@
                     <Button x:Name="ScrapButton" Grid.Column="1" Text="Scraped" BackgroundColor="#DC2626" TextColor="White" CornerRadius="14" Clicked="OnScrapClicked" />
                 </Grid>
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <Button x:Name="ReworkButton" Text="Rework" BackgroundColor="#F97316" TextColor="White" CornerRadius="14" Clicked="OnReworkClicked" />
-                    <Button x:Name="PendingButton" Grid.Column="1" Text="Pendiente" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" Clicked="OnPendingClicked" />
+                    <Button x:Name="ReworkButton" Grid.ColumnSpan="2" Text="Rework" BackgroundColor="#F97316" TextColor="White" CornerRadius="14" Clicked="OnReworkClicked" />
                 </Grid>
             </VerticalStackLayout>
         </Frame>
