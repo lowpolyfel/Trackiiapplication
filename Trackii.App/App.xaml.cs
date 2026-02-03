@@ -4,6 +4,10 @@ namespace Trackii.App
 {
     public partial class App : Application
     {
+        public static IServiceProvider Services =>
+            Current?.Handler?.MauiContext?.Services
+            ?? throw new InvalidOperationException("Servicios MAUI no disponibles.");
+
         public App()
         {
             InitializeComponent();
