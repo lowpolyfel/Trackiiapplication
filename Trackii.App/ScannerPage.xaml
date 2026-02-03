@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
     Title="Scanner">
-    <Grid RowDefinitions="2*,Auto,Auto" Padding="16" RowSpacing="12">
+    <Grid RowDefinitions="2*,Auto,Auto,Auto" Padding="16" RowSpacing="12">
         <Frame Grid.Row="0" CornerRadius="16" HasShadow="False" Padding="0">
             <zxing:CameraBarcodeReaderView
                 x:Name="BarcodeReader"
@@ -14,12 +14,18 @@
                 BarcodesDetected="OnBarcodesDetected" />
         </Frame>
 
-        <VerticalStackLayout Grid.Row="1" Spacing="8">
+        <HorizontalStackLayout Grid.Row="1" Spacing="12">
+            <Button Text="Enfocar" Clicked="OnRefocusClicked" />
+            <Button Text="Linterna" Clicked="OnTorchClicked" />
+            <Label x:Name="StatusLabel" Text="Listo para escanear" VerticalTextAlignment="Center" />
+        </HorizontalStackLayout>
+
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
             <Label Text="No. de orden" FontAttributes="Bold" />
             <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" />
         </VerticalStackLayout>
 
-        <VerticalStackLayout Grid.Row="2" Spacing="8">
+        <VerticalStackLayout Grid.Row="3" Spacing="8">
             <Label Text="No. de parte" FontAttributes="Bold" />
             <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" />
         </VerticalStackLayout>
