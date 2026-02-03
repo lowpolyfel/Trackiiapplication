@@ -38,7 +38,7 @@ namespace Trackii.App
                 return;
             }
 
-            StatusLabel.Text = "Listo para escanear";
+            StatusLabel.Text = "Escaneando automáticamente...";
             StartScanner();
         }
 
