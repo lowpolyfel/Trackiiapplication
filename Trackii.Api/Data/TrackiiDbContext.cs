@@ -65,11 +65,15 @@ public sealed class TrackiiDbContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.DeviceUid).HasColumnName("device_uid");
             entity.Property(e => e.LocationId).HasColumnName("location_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
             entity.Property(e => e.Name).HasColumnName("name");
             entity.Property(e => e.Active).HasColumnName("active");
             entity.HasOne(e => e.Location)
                 .WithMany(l => l.Devices)
                 .HasForeignKey(e => e.LocationId);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Devices)
+                .HasForeignKey(e => e.UserId);
         });
     }
 }

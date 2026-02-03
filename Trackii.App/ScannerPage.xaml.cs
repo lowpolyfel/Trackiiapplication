@@ -18,6 +18,7 @@ namespace Trackii.App
         private bool _isCapturing;
         private string? _lastResult;
         private DateTime _lastScanAt;
+        private DateTime _lastDetectionAt;
         private bool _hasPermission;
 
         public ScannerPage()
@@ -219,7 +220,7 @@ namespace Trackii.App
             if (_session.IsLoggedIn)
             {
                 AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"{_session.LocationName} • {_session.Username}";
+                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
                 AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
                 LoginButton.IsVisible = false;
             }
