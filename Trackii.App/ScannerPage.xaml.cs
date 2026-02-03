@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Trackii.App.Models;
 using Trackii.App.Services;
 using ZXing.Net.Maui;
 using ZXing.Net.Maui.Controls;
@@ -10,20 +11,26 @@ namespace Trackii.App
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(250);
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(100);
         private CameraBarcodeReaderView? _barcodeReader;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
         private readonly AppSession _session;
+        private readonly ApiClient _apiClient;
         private bool _isCapturing;
         private string? _lastResult;
         private DateTime _lastScanAt;
+        private DateTime _lastDetectionAt;
         private bool _hasPermission;
+        private uint? _maxQuantity;
+        private PartLookupResponse? _partInfo;
+        private WorkOrderContextResponse? _workOrderContext;
 
         public ScannerPage()
         {
             InitializeComponent();
             _session = App.Services.GetRequiredService<AppSession>();
+            _apiClient = App.Services.GetRequiredService<ApiClient>();
             BuildScanner();
         }
 
@@ -87,10 +94,12 @@ namespace Trackii.App
                 if (OrderRegex.IsMatch(result))
                 {
                     OrderEntry.Text = result;
+                    _ = LoadWorkOrderContextAsync(result);
                 }
                 else
                 {
                     PartEntry.Text = result;
+                    _ = LoadPartInfoAsync(result);
                 }
             });
         }
@@ -156,12 +165,12 @@ namespace Trackii.App
             var reader = new CameraBarcodeReaderView
             {
                 CameraLocation = CameraLocation.Rear,
-                IsDetecting = false,
+                IsDetecting = true,
                 Options = new BarcodeReaderOptions
                 {
-                    AutoRotate = false,
+                    AutoRotate = true,
                     TryHarder = false,
-                    TryInverted = false,
+                    TryInverted = true,
                     Multiple = false,
                     Formats = BarcodeFormats.All
                 }
@@ -219,7 +228,7 @@ namespace Trackii.App
             if (_session.IsLoggedIn)
             {
                 AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"{_session.LocationName} • {_session.Username}";
+                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
                 AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
                 LoginButton.IsVisible = false;
             }
@@ -229,6 +238,206 @@ namespace Trackii.App
                 AuthSubtitleLabel.Text = "Logeate acá para continuar.";
                 AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
                 LoginButton.IsVisible = true;
+            }
+        }
+
+        private async void OnOrderChanged(object? sender, TextChangedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(e.NewTextValue))
+            {
+                return;
+            }
+
+            if (OrderRegex.IsMatch(e.NewTextValue))
+            {
+                await LoadWorkOrderContextAsync(e.NewTextValue);
+            }
+        }
+
+        private async void OnPartChanged(object? sender, TextChangedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(e.NewTextValue))
+            {
+                return;
+            }
+
+            await LoadPartInfoAsync(e.NewTextValue);
+        }
+
+        private async Task LoadPartInfoAsync(string partNumber)
+        {
+            try
+            {
+                var response = await _apiClient.GetPartInfoAsync(partNumber, CancellationToken.None);
+                _partInfo = response;
+                if (!response.Found)
+                {
+                    AreaEntry.Text = "-";
+                    FamilyEntry.Text = "-";
+                    SubfamilyEntry.Text = "-";
+                    await DisplayAlert("Producto no encontrado", response.Message ?? "Producto no registrado.", "OK");
+                    return;
+                }
+
+                AreaEntry.Text = response.AreaName ?? "-";
+                FamilyEntry.Text = response.FamilyName ?? "-";
+                SubfamilyEntry.Text = response.SubfamilyName ?? "-";
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"Error al consultar producto: {ex.Message}";
+            }
+        }
+
+        private async Task LoadWorkOrderContextAsync(string workOrderNumber)
+        {
+            if (!_session.IsLoggedIn)
+            {
+                StatusLabel.Text = "Inicia sesión para continuar.";
+                return;
+            }
+
+            try
+            {
+                var response = await _apiClient.GetWorkOrderContextAsync(workOrderNumber, _session.DeviceId, CancellationToken.None);
+                _workOrderContext = response;
+                if (!response.Found)
+                {
+                    _maxQuantity = null;
+                    QuantityEntry.Text = string.Empty;
+                    QuantityHintLabel.Text = response.Message ?? "Orden no encontrada.";
+                    return;
+                }
+
+                if (!response.CanProceed)
+                {
+                    _maxQuantity = null;
+                    QuantityEntry.Text = string.Empty;
+                    QuantityHintLabel.Text = response.Message ?? "No se puede avanzar.";
+                    return;
+                }
+
+                _maxQuantity = response.MaxQty;
+                if (response.IsFirstStep)
+                {
+                    QuantityEntry.Text = string.Empty;
+                    QuantityHintLabel.Text = "Primera etapa: ingresa la cantidad.";
+                }
+                else
+                {
+                    QuantityEntry.Text = response.PreviousQty?.ToString() ?? string.Empty;
+                    QuantityHintLabel.Text = response.MaxQty is null
+                        ? "Cantidad previa no disponible."
+                        : $"Cantidad máxima: {response.MaxQty}";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"Error al consultar orden: {ex.Message}";
+            }
+        }
+
+        private void OnQuantityChanged(object? sender, TextChangedEventArgs e)
+        {
+            if (_maxQuantity is null || string.IsNullOrWhiteSpace(e.NewTextValue))
+            {
+                return;
+            }
+
+            if (uint.TryParse(e.NewTextValue, out var value) && value > _maxQuantity.Value)
+            {
+                QuantityEntry.Text = _maxQuantity.Value.ToString();
+                QuantityHintLabel.Text = $"Cantidad máxima: {_maxQuantity}";
+            }
+        }
+
+        private async void OnRegisterClicked(object? sender, EventArgs e)
+        {
+            if (!_session.IsLoggedIn)
+            {
+                StatusLabel.Text = "Inicia sesión para registrar.";
+                return;
+            }
+
+            if (_partInfo is null || !_partInfo.Found)
+            {
+                StatusLabel.Text = "Producto no válido.";
+                return;
+            }
+
+            if (_workOrderContext is null || !_workOrderContext.CanProceed)
+            {
+                StatusLabel.Text = _workOrderContext?.Message ?? "Orden no válida.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(OrderEntry.Text) || string.IsNullOrWhiteSpace(PartEntry.Text))
+            {
+                StatusLabel.Text = "Captura orden y parte.";
+                return;
+            }
+
+            if (!uint.TryParse(QuantityEntry.Text, out var quantity) || quantity == 0)
+            {
+                StatusLabel.Text = "Cantidad inválida.";
+                return;
+            }
+
+            if (_maxQuantity is not null && quantity > _maxQuantity.Value)
+            {
+                StatusLabel.Text = "Cantidad mayor a la permitida.";
+                return;
+            }
+
+            try
+            {
+                var response = await _apiClient.RegisterScanAsync(new RegisterScanRequest
+                {
+                    WorkOrderNumber = OrderEntry.Text.Trim(),
+                    PartNumber = PartEntry.Text.Trim(),
+                    Quantity = quantity,
+                    UserId = _session.UserId,
+                    DeviceId = _session.DeviceId
+                }, CancellationToken.None);
+                StatusLabel.Text = response.Message;
+                DetectionLabel.Text = "Registro exitoso.";
+                await LoadWorkOrderContextAsync(OrderEntry.Text.Trim());
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"No se pudo registrar: {ex.Message}";
+            }
+        }
+
+        private async void OnScrapClicked(object? sender, EventArgs e)
+        {
+            if (!_session.IsLoggedIn)
+            {
+                StatusLabel.Text = "Inicia sesión para cancelar.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(OrderEntry.Text))
+            {
+                StatusLabel.Text = "Captura la orden.";
+                return;
+            }
+
+            try
+            {
+                var response = await _apiClient.ScrapAsync(new ScrapRequest
+                {
+                    WorkOrderNumber = OrderEntry.Text.Trim(),
+                    UserId = _session.UserId,
+                    DeviceId = _session.DeviceId,
+                    Reason = "Scrap desde scanner"
+                }, CancellationToken.None);
+                StatusLabel.Text = response.Message;
+                DetectionLabel.Text = "Orden cancelada.";
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Text = $"No se pudo cancelar: {ex.Message}";
             }
         }
 

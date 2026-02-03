@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="#FFFFFF"
     Title="Scanner">
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20" RowSpacing="16">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Padding="20" RowSpacing="16">
         <VerticalStackLayout Grid.Row="0" Spacing="8">
             <Label Text="SCANNER" FontSize="24" FontAttributes="Bold" TextColor="#0F172A" />
             <Frame x:Name="AuthCard" BackgroundColor="#F1F5F9" CornerRadius="16" HasShadow="False" Padding="12">
@@ -48,15 +48,51 @@
             <Frame BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="No. de orden" FontAttributes="Bold" TextColor="#0F172A" />
-                    <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnOrderChanged" />
                 </VerticalStackLayout>
             </Frame>
             <Frame Grid.Column="1" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
-                    <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnPartChanged" />
                 </VerticalStackLayout>
             </Frame>
         </Grid>
+
+        <Frame Grid.Row="4" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Información del producto" FontAttributes="Bold" TextColor="#0F172A" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Área" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Label Text="Familia" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="6">
+                        <Label Text="Subfamilia" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    </VerticalStackLayout>
+                </Grid>
+            </VerticalStackLayout>
+        </Frame>
+
+        <Frame Grid.Row="5" BackgroundColor="#F8FAFC" CornerRadius="16" HasShadow="False" Padding="12">
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Cantidad de piezas" FontAttributes="Bold" TextColor="#0F172A" />
+                <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
+                <Label x:Name="QuantityHintLabel" Text="" TextColor="#64748B" FontSize="12" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="#16A34A" TextColor="White" CornerRadius="14" Clicked="OnRegisterClicked" />
+                    <Button x:Name="ScrapButton" Grid.Column="1" Text="Scraped" BackgroundColor="#DC2626" TextColor="White" CornerRadius="14" Clicked="OnScrapClicked" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button Text="Pendiente 1" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" IsEnabled="False" />
+                    <Button Grid.Column="1" Text="Pendiente 2" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" IsEnabled="False" />
+                </Grid>
+            </VerticalStackLayout>
+        </Frame>
     </Grid>
 </ContentPage>

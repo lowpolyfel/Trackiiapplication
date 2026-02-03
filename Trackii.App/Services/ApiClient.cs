@@ -43,4 +43,40 @@ public sealed class ApiClient
         var payload = await response.Content.ReadFromJsonAsync<RegisterResponse>(cancellationToken: cancellationToken);
         return payload ?? new RegisterResponse();
     }
+
+    public async Task<PartLookupResponse> GetPartInfoAsync(string partNumber, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.GetAsync($"api/scanner/part/{Uri.EscapeDataString(partNumber)}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var payload = await response.Content.ReadFromJsonAsync<PartLookupResponse>(cancellationToken: cancellationToken);
+        return payload ?? new PartLookupResponse();
+    }
+
+    public async Task<WorkOrderContextResponse> GetWorkOrderContextAsync(string workOrderNumber, uint deviceId, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.GetAsync($"api/scanner/work-orders/{Uri.EscapeDataString(workOrderNumber)}/context?deviceId={deviceId}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var payload = await response.Content.ReadFromJsonAsync<WorkOrderContextResponse>(cancellationToken: cancellationToken);
+        return payload ?? new WorkOrderContextResponse();
+    }
+
+    public async Task<RegisterScanResponse> RegisterScanAsync(RegisterScanRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/scanner/register", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var payload = await response.Content.ReadFromJsonAsync<RegisterScanResponse>(cancellationToken: cancellationToken);
+        return payload ?? new RegisterScanResponse();
+    }
+
+    public async Task<ScrapResponse> ScrapAsync(ScrapRequest request, CancellationToken cancellationToken)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/scanner/scrap", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var payload = await response.Content.ReadFromJsonAsync<ScrapResponse>(cancellationToken: cancellationToken);
+        return payload ?? new ScrapResponse();
+    }
 }
