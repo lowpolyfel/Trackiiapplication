@@ -249,16 +249,14 @@ namespace Trackii.App
         {
             if (_session.IsLoggedIn)
             {
-                AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
-                AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
+                LocationLabel.Text = $"Localidad: {_session.LocationName}";
+                DeviceLabel.Text = $"Tablet: {_session.DeviceName}";
                 LoginButton.IsVisible = false;
             }
             else
             {
-                AuthTitleLabel.Text = "Inicia sesión";
-                AuthSubtitleLabel.Text = "Logeate acá para continuar.";
-                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
+                LocationLabel.Text = "Localidad: -";
+                DeviceLabel.Text = "Tablet: -";
                 LoginButton.IsVisible = true;
             }
         }
@@ -585,8 +583,12 @@ namespace Trackii.App
                         continue;
                     }
 
-                    await ScanLine.TranslateTo(0, travel, 1200, Easing.CubicInOut);
-                    await ScanLine.TranslateTo(0, 0, 1200, Easing.CubicInOut);
+                    await Task.WhenAll(
+                        ScanLine.TranslateTo(0, travel, 1200, Easing.CubicInOut),
+                        ScanLineGlow.TranslateTo(0, travel, 1200, Easing.CubicInOut));
+                    await Task.WhenAll(
+                        ScanLine.TranslateTo(0, 0, 1200, Easing.CubicInOut),
+                        ScanLineGlow.TranslateTo(0, 0, 1200, Easing.CubicInOut));
                 }
                 catch (TaskCanceledException)
                 {
@@ -607,13 +609,17 @@ namespace Trackii.App
             try
             {
                 DetectedTextLabel.Text = $"Detectado: {result}";
-                DetectedOverlay.Opacity = 0;
-                DetectedOverlay.Scale = 0.9;
+                DetectedPopup.IsVisible = true;
+                DetectedPopup.Opacity = 0;
+                DetectedCard.Opacity = 0;
+                DetectedCard.Scale = 0.92;
                 await Task.WhenAll(
-                    DetectedOverlay.FadeTo(1, 120, Easing.CubicOut),
-                    DetectedOverlay.ScaleTo(1, 120, Easing.CubicOut));
-                await Task.Delay(350, token);
-                await DetectedOverlay.FadeTo(0, 400, Easing.CubicIn);
+                    DetectedPopup.FadeTo(1, 120, Easing.CubicOut),
+                    DetectedCard.FadeTo(1, 120, Easing.CubicOut),
+                    DetectedCard.ScaleTo(1, 120, Easing.CubicOut));
+                await Task.Delay(500, token);
+                await DetectedPopup.FadeTo(0, 300, Easing.CubicIn);
+                DetectedPopup.IsVisible = false;
             }
             catch (TaskCanceledException)
             {
@@ -629,6 +635,18 @@ namespace Trackii.App
         {
             _detectedCts?.Cancel();
             _detectedCts = null;
+            if (DetectedPopup is not null)
+            {
+                DetectedPopup.IsVisible = false;
+                DetectedPopup.Opacity = 0;
+            }
+        }
+
+        private void OnClearClicked(object? sender, EventArgs e)
+        {
+            ResetForm();
+            StatusLabel.Text = "Formulario limpio.";
+            DetectionLabel.Text = "Listo para detectar códigos.";
         }
 
         private void ResetForm()
