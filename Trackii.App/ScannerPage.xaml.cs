@@ -258,14 +258,16 @@ namespace Trackii.App
         {
             if (_session.IsLoggedIn)
             {
-                LocationLabel.Text = $"Localidad: {_session.LocationName}";
-                DeviceLabel.Text = $"Tablet: {_session.DeviceName}";
+                AuthTitleLabel.Text = _session.DeviceName;
+                AuthSubtitleLabel.Text = _session.LocationName;
+                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
                 LoginButton.IsVisible = false;
             }
             else
             {
-                LocationLabel.Text = "Localidad: -";
-                DeviceLabel.Text = "Tablet: -";
+                AuthTitleLabel.Text = "Sin asignar";
+                AuthSubtitleLabel.Text = "Sin asignar";
+                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
                 LoginButton.IsVisible = true;
             }
         }
@@ -733,10 +735,10 @@ namespace Trackii.App
 
                     await Task.WhenAll(
                         ScanLine.TranslateTo(0, travel, 1200, Easing.CubicInOut),
-                        ScanLineGlow.TranslateTo(0, travel, 1200, Easing.CubicInOut));
+                        ScanGlow.TranslateTo(0, travel, 1200, Easing.CubicInOut));
                     await Task.WhenAll(
                         ScanLine.TranslateTo(0, 0, 1200, Easing.CubicInOut),
-                        ScanLineGlow.TranslateTo(0, 0, 1200, Easing.CubicInOut));
+                        ScanGlow.TranslateTo(0, 0, 1200, Easing.CubicInOut));
                 }
                 catch (TaskCanceledException)
                 {

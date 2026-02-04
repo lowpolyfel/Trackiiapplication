@@ -5,82 +5,39 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="#F8FAFC"
     Title="Scanner">
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <Color x:Key="SurfaceColor">#FFFFFF</Color>
-            <Color x:Key="BorderColor">#E2E8F0</Color>
-            <Color x:Key="PrimaryText">#0F172A</Color>
-            <Color x:Key="SecondaryText">#64748B</Color>
-            <Color x:Key="AccentRed">#EF4444</Color>
-            <Style x:Key="CardFrame" TargetType="Frame">
-                <Setter Property="BackgroundColor" Value="{StaticResource SurfaceColor}" />
-                <Setter Property="CornerRadius" Value="18" />
-                <Setter Property="HasShadow" Value="False" />
-                <Setter Property="BorderColor" Value="{StaticResource BorderColor}" />
-                <Setter Property="Padding" Value="16" />
-            </Style>
-            <Style x:Key="ActionButton" TargetType="Button">
-                <Setter Property="CornerRadius" Value="22" />
-                <Setter Property="HeightRequest" Value="44" />
-                <Setter Property="FontAttributes" Value="Bold" />
-                <Setter Property="TextColor" Value="White" />
-            </Style>
-        </ResourceDictionary>
-    </ContentPage.Resources>
-
-    <Grid RowDefinitions="Auto,2.8*,Auto,Auto,Auto" Padding="20" RowSpacing="16">
-        <Grid Grid.Row="0" ColumnDefinitions="0.1*,0.9*" ColumnSpacing="16">
-            <Frame Style="{StaticResource CardFrame}" Padding="8">
-                <Image Source="logo.png" Aspect="AspectFit" />
-            </Frame>
-            <Grid Grid.Column="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                <Label
-                    Grid.RowSpan="2"
-                    Text="Trackii"
-                    FontSize="26"
-                    FontAttributes="Bold"
-                    TextColor="{StaticResource PrimaryText}"
-                    VerticalOptions="Center" />
-                <VerticalStackLayout Grid.Column="1" Spacing="4" HorizontalOptions="End">
-                    <Label
-                        x:Name="LocationLabel"
-                        Text="Localidad: -"
-                        FontSize="12"
-                        TextColor="{StaticResource SecondaryText}"
-                        HorizontalOptions="End" />
-                    <Label
-                        x:Name="DeviceLabel"
-                        Text="Tablet: -"
-                        FontSize="12"
-                        TextColor="{StaticResource SecondaryText}"
-                        HorizontalOptions="End" />
-                    <Button
-                        x:Name="LoginButton"
-                        Text="Iniciar sesión"
-                        BackgroundColor="#2563EB"
-                        TextColor="White"
-                        CornerRadius="16"
-                        HeightRequest="32"
-                        Padding="16,0"
-                        Clicked="OnLoginClicked" />
-                </VerticalStackLayout>
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="20" RowSpacing="18">
+        <Frame x:Name="AuthCard" Grid.Row="0" BackgroundColor="#F8FAFC" CornerRadius="22" HasShadow="False" Padding="14">
+            <Grid ColumnDefinitions="0.1*,0.9*" ColumnSpacing="12">
+                <Frame BackgroundColor="#FFFFFF" CornerRadius="18" HasShadow="False" Padding="8" HeightRequest="52" WidthRequest="52" HorizontalOptions="Start" VerticalOptions="Center">
+                    <Image Source="logo.png" Aspect="AspectFit" />
+                </Frame>
+                <Grid Grid.Column="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Grid.Column="0" Spacing="4">
+                        <Label Text="Trackii" FontSize="22" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Button x:Name="LoginButton" Text="Iniciar sesión" Clicked="OnLoginClicked" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="16" HeightRequest="36" HorizontalOptions="Start" Padding="14,4" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1" HorizontalOptions="End" VerticalOptions="Center" Spacing="2">
+                        <Label Text="Localidad" FontSize="11" TextColor="#64748B" />
+                        <Label x:Name="AuthSubtitleLabel" Text="Sin asignar" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Label Text="Tableta" FontSize="11" TextColor="#64748B" />
+                        <Label x:Name="AuthTitleLabel" Text="Sin asignar" FontAttributes="Bold" TextColor="#0F172A" />
+                    </VerticalStackLayout>
+                </Grid>
             </Grid>
-        </Grid>
+        </Frame>
 
-        <Frame Grid.Row="1" Style="{StaticResource CardFrame}" Padding="0">
+        <Frame Grid.Row="1" BackgroundColor="#F8FAFC" CornerRadius="28" HasShadow="False" Padding="0">
             <Grid>
                 <ContentView x:Name="ScannerHost" />
-                <BoxView BackgroundColor="#0F172A" Opacity="0.05" />
-                <BoxView x:Name="ScanLineGlow" HeightRequest="10" BackgroundColor="#FCA5A5" Opacity="0.5" HorizontalOptions="Fill" VerticalOptions="Start" />
-                <BoxView x:Name="ScanLine" HeightRequest="2" BackgroundColor="{StaticResource AccentRed}" Opacity="0.9" HorizontalOptions="Fill" VerticalOptions="Start" />
-                <Grid x:Name="DetectedPopup" BackgroundColor="#99000000" IsVisible="False" Opacity="0">
-                    <Frame x:Name="DetectedCard" BackgroundColor="{StaticResource SurfaceColor}" CornerRadius="18" Padding="20" HasShadow="False" BorderColor="{StaticResource BorderColor}" HorizontalOptions="Center" VerticalOptions="Center">
-                        <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                            <Label Text="Código detectado" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource PrimaryText}" HorizontalOptions="Center" />
-                            <Label x:Name="DetectedTextLabel" Text="" TextColor="{StaticResource SecondaryText}" HorizontalOptions="Center" />
-                        </VerticalStackLayout>
-                    </Frame>
-                </Grid>
+                <BoxView BackgroundColor="#FFFFFF" Opacity="0.05" />
+                <BoxView x:Name="ScanGlow" HeightRequest="18" BackgroundColor="#FCA5A5" Opacity="0.35" HorizontalOptions="Fill" VerticalOptions="Start" />
+                <BoxView x:Name="ScanLine" HeightRequest="3" BackgroundColor="#EF4444" Opacity="0.95" HorizontalOptions="Fill" VerticalOptions="Start" />
+                <Frame x:Name="DetectedOverlay" BackgroundColor="#0F172A" CornerRadius="18" Padding="16" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" HasShadow="True">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Código detectado" TextColor="#F8FAFC" FontAttributes="Bold" HorizontalOptions="Center" />
+                        <Label x:Name="DetectedTextLabel" Text="-" TextColor="#F8FAFC" FontSize="14" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Frame>
                 <Grid x:Name="LoadingOverlay" BackgroundColor="#CCFFFFFF" IsVisible="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
                         <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="#2563EB" />
@@ -90,61 +47,62 @@
             </Grid>
         </Frame>
 
-        <Frame Grid.Row="2" Style="{StaticResource CardFrame}" Padding="12">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                <Label Text="Estado" FontAttributes="Bold" TextColor="{StaticResource PrimaryText}" />
-                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                    <Label x:Name="StatusLabel" Text="Escaneo instantáneo activo" TextColor="{StaticResource PrimaryText}" FontAttributes="Bold" />
-                    <Label x:Name="DetectionLabel" Text="Listo para detectar códigos." TextColor="{StaticResource SecondaryText}" FontSize="12" />
-                </VerticalStackLayout>
-            </Grid>
-        </Frame>
-
-        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="16">
-            <Frame Style="{StaticResource CardFrame}">
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="14">
+            <Frame BackgroundColor="#F8FAFC" CornerRadius="18" HasShadow="False" Padding="14">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Información obtenida" FontAttributes="Bold" TextColor="{StaticResource PrimaryText}" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                    <Label Text="Información obtenida" FontAttributes="Bold" TextColor="#0F172A" />
+                    <Frame BackgroundColor="#FFFFFF" CornerRadius="14" HasShadow="False" Padding="10">
                         <VerticalStackLayout Spacing="4">
-                            <Label Text="Área" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource SecondaryText}" />
-                            <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="{StaticResource PrimaryText}" BackgroundColor="#F1F5F9" />
+                            <Label Text="Estado del escaneo" FontSize="11" TextColor="#94A3B8" />
+                            <Label x:Name="StatusLabel" Text="Escaneo instantáneo activo" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Label x:Name="DetectionLabel" Text="Listo para detectar códigos." TextColor="#64748B" FontSize="12" />
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="Familia" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource SecondaryText}" />
-                            <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="{StaticResource PrimaryText}" BackgroundColor="#F1F5F9" />
+                    </Frame>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Área" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
                         </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="4">
-                            <Label Text="Subfamilia" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource SecondaryText}" />
-                            <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="{StaticResource PrimaryText}" BackgroundColor="#F1F5F9" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Familia" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="6">
+                            <Label Text="Subfamilia" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
                         </VerticalStackLayout>
                     </Grid>
                 </VerticalStackLayout>
             </Frame>
-            <Frame Grid.Column="1" Style="{StaticResource CardFrame}">
+            <Frame Grid.Column="1" BackgroundColor="#F8FAFC" CornerRadius="18" HasShadow="False" Padding="14">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Lote y parte" FontAttributes="Bold" TextColor="{StaticResource PrimaryText}" />
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="No. de lote" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource SecondaryText}" />
-                        <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="{StaticResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnOrderChanged" />
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="No. de parte" FontAttributes="Bold" FontSize="12" TextColor="{StaticResource SecondaryText}" />
-                        <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="{StaticResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnPartChanged" />
-                    </VerticalStackLayout>
+                    <Label Text="Datos de lote y parte" FontAttributes="Bold" TextColor="#0F172A" />
+                    <Frame BackgroundColor="#FFFFFF" CornerRadius="14" HasShadow="False" Padding="10">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="No. de lote" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnOrderChanged" />
+                        </VerticalStackLayout>
+                    </Frame>
+                    <Frame BackgroundColor="#FFFFFF" CornerRadius="14" HasShadow="False" Padding="10">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnPartChanged" />
+                        </VerticalStackLayout>
+                    </Frame>
                 </VerticalStackLayout>
             </Frame>
         </Grid>
 
-        <Frame Grid.Row="4" Style="{StaticResource CardFrame}">
-            <VerticalStackLayout Spacing="12">
-                <Label Text="No. de piezas" FontAttributes="Bold" TextColor="{StaticResource PrimaryText}" />
-                <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="{StaticResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
-                <Label x:Name="QuantityHintLabel" Text="" TextColor="{StaticResource SecondaryText}" FontSize="12" />
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
-                    <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="#16A34A" Style="{StaticResource ActionButton}" Clicked="OnRegisterClicked" />
-                    <Button x:Name="ScrapButton" Grid.Column="1" Text="Scrap" BackgroundColor="#DC2626" Style="{StaticResource ActionButton}" Clicked="OnScrapClicked" />
-                    <Button x:Name="ReworkButton" Grid.Row="1" Text="Rework" BackgroundColor="#F59E0B" Style="{StaticResource ActionButton}" Clicked="OnReworkClicked" />
-                    <Button x:Name="ClearButton" Grid.Row="1" Grid.Column="1" Text="Limpiar" BackgroundColor="#2563EB" Style="{StaticResource ActionButton}" Clicked="OnClearClicked" />
+        <Frame Grid.Row="3" BackgroundColor="#F8FAFC" CornerRadius="18" HasShadow="False" Padding="16">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="No. de piezas" FontAttributes="Bold" TextColor="#0F172A" />
+                <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
+                <Label x:Name="QuantityHintLabel" Text="" TextColor="#64748B" FontSize="12" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                    <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="#22C55E" TextColor="White" CornerRadius="22" Clicked="OnRegisterClicked" HeightRequest="48" />
+                    <Button x:Name="ScrapButton" Grid.Column="1" Text="Scrap" BackgroundColor="#EF4444" TextColor="White" CornerRadius="22" Clicked="OnScrapClicked" HeightRequest="48" />
+                    <Button x:Name="ReworkButton" Grid.Row="1" Text="Rework" BackgroundColor="#F97316" TextColor="White" CornerRadius="22" Clicked="OnReworkClicked" HeightRequest="48" />
+                    <Button x:Name="ClearButton" Grid.Row="1" Grid.Column="1" Text="Limpiar" BackgroundColor="#0EA5E9" TextColor="White" CornerRadius="22" Clicked="OnClearClicked" HeightRequest="48" />
                 </Grid>
             </VerticalStackLayout>
         </Frame>
