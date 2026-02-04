@@ -259,13 +259,13 @@ namespace Trackii.App
             if (_session.IsLoggedIn)
             {
                 LocationLabel.Text = $"Localidad: {_session.LocationName}";
-                DeviceLabel.Text = $"Tableta: {_session.DeviceName}";
+                DeviceLabel.Text = $"Tablet: {_session.DeviceName}";
                 LoginButton.IsVisible = false;
             }
             else
             {
-                LocationLabel.Text = "Localidad: -";
-                DeviceLabel.Text = "Tableta: -";
+                LocationLabel.Text = "Localidad del dispositivo";
+                DeviceLabel.Text = "Tablet sin sesión";
                 LoginButton.IsVisible = true;
             }
         }
@@ -731,8 +731,8 @@ namespace Trackii.App
                         continue;
                     }
 
-                    await ScanLine.TranslateTo(0, travel, 1200, Easing.CubicInOut);
-                    await ScanLine.TranslateTo(0, 0, 1200, Easing.CubicInOut);
+                    await ScanLineGroup.TranslateTo(0, travel, 1200, Easing.CubicInOut);
+                    await ScanLineGroup.TranslateTo(0, 0, 1200, Easing.CubicInOut);
                 }
                 catch (TaskCanceledException)
                 {
@@ -789,6 +789,13 @@ namespace Trackii.App
             _partInfo = null;
             _workOrderContext = null;
             _maxQuantity = null;
+        }
+
+        private void OnClearClicked(object? sender, EventArgs e)
+        {
+            ResetForm();
+            StatusLabel.Text = "Formulario limpio.";
+            DetectionLabel.Text = "Listo para detectar códigos.";
         }
     }
 }

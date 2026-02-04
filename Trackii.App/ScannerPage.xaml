@@ -5,122 +5,99 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     BackgroundColor="{DynamicResource PageBackground}"
     Title="Scanner">
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <Color x:Key="PageBackground">#F8FAFC</Color>
-            <Color x:Key="CardBackground">#FFFFFF</Color>
-            <Color x:Key="StatusBackground">#F1F5F9</Color>
-            <Color x:Key="PrimaryText">#0F172A</Color>
-            <Color x:Key="SecondaryText">#475569</Color>
-            <Color x:Key="MutedText">#64748B</Color>
-            <Color x:Key="AccentRed">#FF3B30</Color>
-            <Color x:Key="ScannerShade">#0F172A</Color>
-            <Color x:Key="RegisterButton">#22C55E</Color>
-            <Color x:Key="ScrapButton">#F97316</Color>
-            <Color x:Key="ReworkButton">#3B82F6</Color>
-            <Color x:Key="NeutralButton">#E2E8F0</Color>
-            <Color x:Key="NeutralButtonText">#0F172A</Color>
-        </ResourceDictionary>
-    </ContentPage.Resources>
-    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="20" RowSpacing="18">
-        <VerticalStackLayout Grid.Row="0" Spacing="12">
-            <Grid ColumnDefinitions="0.1*,0.9*" ColumnSpacing="12" VerticalOptions="Center">
-                <Frame BackgroundColor="{DynamicResource CardBackground}" CornerRadius="18" HasShadow="False" Padding="8" HeightRequest="56" WidthRequest="56" HorizontalOptions="Start" VerticalOptions="Center">
-                    <Image Source="logo.png" Aspect="AspectFit" />
-                </Frame>
-                <Grid Grid.Column="1" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                    <Label Text="Trackii" FontSize="22" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" VerticalOptions="Center" />
-                    <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
-                        <Label x:Name="LocationLabel" Text="Localidad: -" FontSize="12" TextColor="{DynamicResource SecondaryText}" HorizontalTextAlignment="End" />
-                        <Label x:Name="DeviceLabel" Text="Tableta: -" FontSize="12" TextColor="{DynamicResource SecondaryText}" HorizontalTextAlignment="End" />
-                        <Button x:Name="LoginButton" Text="Login" Clicked="OnLoginClicked" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="14" HeightRequest="28" FontSize="12" Padding="12,0" HorizontalOptions="End" />
-                    </VerticalStackLayout>
-                </Grid>
+    <Grid RowDefinitions="Auto,3*,Auto,Auto" Padding="20" RowSpacing="18">
+        <Grid Grid.Row="0" ColumnDefinitions="1*,9*" ColumnSpacing="16">
+            <Frame BackgroundColor="#FFFFFF" CornerRadius="18" HasShadow="False" Padding="6" HeightRequest="64" WidthRequest="64" VerticalOptions="Center">
+                <Image Source="logo.png" Aspect="AspectFit" />
+            </Frame>
+            <Grid Grid.Column="1" ColumnDefinitions="2*,3*" RowDefinitions="Auto,Auto" VerticalOptions="Center">
+                <Label Text="Trackii" FontSize="28" FontAttributes="Bold" TextColor="#0F172A" VerticalOptions="Center" />
+                <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="End">
+                    <Label x:Name="LocationLabel" Text="Localidad" FontAttributes="Bold" TextColor="#0F172A" HorizontalTextAlignment="End" />
+                    <Label x:Name="DeviceLabel" Text="Tablet" TextColor="#64748B" FontSize="12" HorizontalTextAlignment="End" />
+                </VerticalStackLayout>
+                <Button x:Name="LoginButton" Grid.Row="1" Grid.ColumnSpan="2" Text="Iniciar sesión" Clicked="OnLoginClicked" BackgroundColor="#2563EB" TextColor="White" CornerRadius="18" HeightRequest="34" HorizontalOptions="End" />
             </Grid>
-            <HorizontalStackLayout Spacing="8">
-                <Label Text="Versiones" FontSize="12" TextColor="{DynamicResource SecondaryText}" VerticalOptions="Center" />
-                <Button x:Name="ThemeOneButton" Text="V1" Clicked="OnThemeOneClicked" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="12" HeightRequest="28" FontSize="12" Padding="10,0" />
-                <Button x:Name="ThemeTwoButton" Text="V2" Clicked="OnThemeTwoClicked" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="12" HeightRequest="28" FontSize="12" Padding="10,0" />
-                <Button x:Name="ThemeThreeButton" Text="V3" Clicked="OnThemeThreeClicked" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="12" HeightRequest="28" FontSize="12" Padding="10,0" />
-                <Button x:Name="ThemeFourButton" Text="V4" Clicked="OnThemeFourClicked" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="12" HeightRequest="28" FontSize="12" Padding="10,0" />
-            </HorizontalStackLayout>
-        </VerticalStackLayout>
+        </Grid>
 
-        <Frame Grid.Row="1" BackgroundColor="{DynamicResource CardBackground}" CornerRadius="28" HasShadow="False" Padding="0">
+        <Frame Grid.Row="1" BackgroundColor="#F8FAFC" CornerRadius="28" HasShadow="False" Padding="0">
             <Grid>
                 <ContentView x:Name="ScannerHost" />
-                <BoxView BackgroundColor="{DynamicResource ScannerShade}" Opacity="0.08" />
-                <Grid x:Name="ScanLine" HeightRequest="12" HorizontalOptions="Fill" VerticalOptions="Start">
-                    <BoxView BackgroundColor="{DynamicResource AccentRed}" Opacity="0.2" HeightRequest="12" HorizontalOptions="Fill" VerticalOptions="Center" />
-                    <BoxView BackgroundColor="{DynamicResource AccentRed}" Opacity="0.95" HeightRequest="2" HorizontalOptions="Fill" VerticalOptions="Center" />
+                <BoxView BackgroundColor="#0F172A" Opacity="0.08" />
+                <Grid x:Name="ScanLineGroup">
+                    <BoxView HeightRequest="18" BackgroundColor="#EF4444" Opacity="0.15" HorizontalOptions="Fill" VerticalOptions="Start" />
+                    <BoxView HeightRequest="4" BackgroundColor="#EF4444" Opacity="0.95" HorizontalOptions="Fill" VerticalOptions="Start" />
                 </Grid>
-                <Frame x:Name="DetectedOverlay" BackgroundColor="{DynamicResource PrimaryText}" CornerRadius="18" Padding="16" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" HasShadow="False">
+                <Frame x:Name="DetectedOverlay" BackgroundColor="#111827" CornerRadius="20" Padding="16" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center">
                     <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
-                        <Label Text="✅" FontSize="18" TextColor="White" HorizontalTextAlignment="Center" />
-                        <Label x:Name="DetectedTextLabel" Text="Código detectado" TextColor="White" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                        <Label Text="Ventana emergente de lectura" FontSize="12" TextColor="#CBD5F5" HorizontalTextAlignment="Center" />
+                        <Label Text="Lectura confirmada" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center" />
+                        <Label x:Name="DetectedTextLabel" Text="Código detectado" TextColor="#E2E8F0" HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
                 </Frame>
-                <Grid x:Name="LoadingOverlay" BackgroundColor="#CCFFFFFF" IsVisible="False">
+                <Grid x:Name="LoadingOverlay" BackgroundColor="#DDEFF6FF" IsVisible="False">
                     <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
-                        <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="{DynamicResource AccentRed}" />
-                        <Label Text="Cargando datos..." TextColor="{DynamicResource PrimaryText}" FontAttributes="Bold" />
+                        <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="#2563EB" />
+                        <Label Text="Sincronizando datos..." TextColor="#0F172A" FontAttributes="Bold" />
                     </VerticalStackLayout>
                 </Grid>
             </Grid>
         </Frame>
 
-        <Grid Grid.Row="2" ColumnDefinitions="1.2*,0.8*" ColumnSpacing="14">
-            <Frame BackgroundColor="{DynamicResource CardBackground}" CornerRadius="20" HasShadow="False" Padding="14">
+        <Grid Grid.Row="2" ColumnDefinitions="1.2*,1*" ColumnSpacing="16">
+            <Frame BackgroundColor="#FFFFFF" CornerRadius="18" HasShadow="False" Padding="14">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Información obtenida" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
+                    <Label Text="Información obtenida" FontAttributes="Bold" TextColor="#0F172A" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
                         <VerticalStackLayout Spacing="6">
-                            <Label Text="Área" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                            <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" />
+                            <Label Text="Área" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="6">
-                            <Label Text="Familia" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                            <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" />
+                            <Label Text="Familia" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="6">
-                            <Label Text="Subfamilia" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                            <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" />
+                            <Label Text="Subfamilia" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
                         </VerticalStackLayout>
                     </Grid>
+                    <Frame BackgroundColor="#F1F5F9" CornerRadius="14" HasShadow="False" Padding="10">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Estado del scanner" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Label x:Name="StatusLabel" Text="Escaneo instantáneo activo" TextColor="#0F172A" FontAttributes="Bold" />
+                            <Label x:Name="DetectionLabel" Text="Listo para detectar códigos." TextColor="#64748B" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Frame>
                 </VerticalStackLayout>
             </Frame>
-            <Frame Grid.Column="1" BackgroundColor="{DynamicResource CardBackground}" CornerRadius="20" HasShadow="False" Padding="14">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="No. de lote y No. de parte" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="No. de lote" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                        <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnOrderChanged" />
+
+            <Frame Grid.Column="1" BackgroundColor="#FFFFFF" CornerRadius="18" HasShadow="False" Padding="14">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Datos de lectura" FontAttributes="Bold" TextColor="#0F172A" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="No. de lote" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="OrderEntry" Placeholder="Se llena con 7 dígitos" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnOrderChanged" />
                     </VerticalStackLayout>
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="No. de parte" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                        <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnPartChanged" />
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="PartEntry" Placeholder="Se llena con cualquier otro código" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnPartChanged" />
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
         </Grid>
 
-        <Frame Grid.Row="3" BackgroundColor="{DynamicResource CardBackground}" CornerRadius="20" HasShadow="False" Padding="16">
-            <VerticalStackLayout Spacing="12">
-                <Label Text="No. de piezas" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="{DynamicResource PrimaryText}" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
-                <Label x:Name="QuantityHintLabel" Text="" TextColor="{DynamicResource MutedText}" FontSize="12" />
-                <Frame BackgroundColor="{DynamicResource StatusBackground}" CornerRadius="14" HasShadow="False" Padding="12">
-                    <VerticalStackLayout Spacing="6">
-                        <Label x:Name="StatusLabel" Text="Escaneo instantáneo activo" FontAttributes="Bold" TextColor="{DynamicResource PrimaryText}" />
-                        <Label x:Name="DetectionLabel" Text="Listo para detectar códigos." TextColor="{DynamicResource MutedText}" FontSize="12" />
-                    </VerticalStackLayout>
-                </Frame>
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
-                    <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="{DynamicResource RegisterButton}" TextColor="White" CornerRadius="22" HeightRequest="48" FontAttributes="Bold" Clicked="OnRegisterClicked" />
-                    <Button x:Name="ScrapButton" Grid.Column="1" Text="Scrap" BackgroundColor="{DynamicResource ScrapButton}" TextColor="White" CornerRadius="22" HeightRequest="48" FontAttributes="Bold" Clicked="OnScrapClicked" />
-                    <Button x:Name="ReworkButton" Grid.Row="1" Text="Rework" BackgroundColor="{DynamicResource ReworkButton}" TextColor="White" CornerRadius="22" HeightRequest="48" FontAttributes="Bold" Clicked="OnReworkClicked" />
-                    <Button x:Name="ResetButton" Grid.Row="1" Grid.Column="1" Text="Limpiar" BackgroundColor="{DynamicResource NeutralButton}" TextColor="{DynamicResource NeutralButtonText}" CornerRadius="22" HeightRequest="48" FontAttributes="Bold" Clicked="OnResetClicked" />
+        <Frame Grid.Row="3" BackgroundColor="#FFFFFF" CornerRadius="20" HasShadow="False" Padding="16">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="Total de piezas" FontAttributes="Bold" TextColor="#0F172A" />
+                <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextColor="#0F172A" PlaceholderColor="#94A3B8" TextChanged="OnQuantityChanged" />
+                <Label x:Name="QuantityHintLabel" Text="" TextColor="#64748B" FontSize="12" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="#22C55E" TextColor="White" CornerRadius="22" HeightRequest="44" Clicked="OnRegisterClicked" />
+                    <Button x:Name="ScrapButton" Grid.Column="1" Text="Scrap" BackgroundColor="#EF4444" TextColor="White" CornerRadius="22" HeightRequest="44" Clicked="OnScrapClicked" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button x:Name="ReworkButton" Text="Rework" BackgroundColor="#F59E0B" TextColor="White" CornerRadius="22" HeightRequest="44" Clicked="OnReworkClicked" />
+                    <Button x:Name="ClearButton" Grid.Column="1" Text="Limpiar" BackgroundColor="#0F172A" TextColor="White" CornerRadius="22" HeightRequest="44" Clicked="OnClearClicked" />
                 </Grid>
             </VerticalStackLayout>
         </Frame>
