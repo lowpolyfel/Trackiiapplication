@@ -11,6 +11,14 @@ namespace Trackii.App
 {
     public partial class ScannerPage : ContentPage
     {
+        private enum ThemePreset
+        {
+            Clean,
+            Glass,
+            Soft,
+            Contrast
+        }
+
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
         private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
         private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(3);
@@ -36,6 +44,7 @@ namespace Trackii.App
             _session = App.Services.GetRequiredService<AppSession>();
             _apiClient = App.Services.GetRequiredService<ApiClient>();
             BuildScanner();
+            ApplyTheme(ThemePreset.Clean);
         }
 
         protected override async void OnAppearing()
@@ -249,19 +258,149 @@ namespace Trackii.App
         {
             if (_session.IsLoggedIn)
             {
-                AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
-                AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
+                LocationLabel.Text = $"Localidad: {_session.LocationName}";
+                DeviceLabel.Text = $"Tableta: {_session.DeviceName}";
                 LoginButton.IsVisible = false;
             }
             else
             {
-                AuthTitleLabel.Text = "Inicia sesión";
-                AuthSubtitleLabel.Text = "Logeate acá para continuar.";
-                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
+                LocationLabel.Text = "Localidad: -";
+                DeviceLabel.Text = "Tableta: -";
                 LoginButton.IsVisible = true;
             }
         }
+
+        private void ApplyTheme(ThemePreset preset)
+        {
+            switch (preset)
+            {
+                case ThemePreset.Clean:
+                    SetThemeResources(
+                        page: "#F8FAFC",
+                        card: "#FFFFFF",
+                        status: "#F1F5F9",
+                        primary: "#0F172A",
+                        secondary: "#475569",
+                        muted: "#64748B",
+                        accent: "#FF3B30",
+                        scannerShade: "#0F172A",
+                        register: "#22C55E",
+                        scrap: "#F97316",
+                        rework: "#3B82F6",
+                        neutral: "#E2E8F0",
+                        neutralText: "#0F172A");
+                    HighlightThemeButton(ThemeOneButton);
+                    break;
+                case ThemePreset.Glass:
+                    SetThemeResources(
+                        page: "#F1F5F9",
+                        card: "#F8FAFC",
+                        status: "#E2E8F0",
+                        primary: "#0B1220",
+                        secondary: "#3E4C63",
+                        muted: "#64748B",
+                        accent: "#F43F5E",
+                        scannerShade: "#0B1220",
+                        register: "#10B981",
+                        scrap: "#FB7185",
+                        rework: "#6366F1",
+                        neutral: "#CBD5F5",
+                        neutralText: "#0B1220");
+                    HighlightThemeButton(ThemeTwoButton);
+                    break;
+                case ThemePreset.Soft:
+                    SetThemeResources(
+                        page: "#FFF7ED",
+                        card: "#FFFFFF",
+                        status: "#FFE4C7",
+                        primary: "#1F2937",
+                        secondary: "#6B7280",
+                        muted: "#9CA3AF",
+                        accent: "#EA580C",
+                        scannerShade: "#1F2937",
+                        register: "#16A34A",
+                        scrap: "#F59E0B",
+                        rework: "#0EA5E9",
+                        neutral: "#FEF3C7",
+                        neutralText: "#1F2937");
+                    HighlightThemeButton(ThemeThreeButton);
+                    break;
+                case ThemePreset.Contrast:
+                    SetThemeResources(
+                        page: "#EEF2FF",
+                        card: "#FFFFFF",
+                        status: "#E0E7FF",
+                        primary: "#111827",
+                        secondary: "#4B5563",
+                        muted: "#6B7280",
+                        accent: "#DC2626",
+                        scannerShade: "#111827",
+                        register: "#059669",
+                        scrap: "#DB2777",
+                        rework: "#2563EB",
+                        neutral: "#E5E7EB",
+                        neutralText: "#111827");
+                    HighlightThemeButton(ThemeFourButton);
+                    break;
+            }
+        }
+
+        private void SetThemeResources(
+            string page,
+            string card,
+            string status,
+            string primary,
+            string secondary,
+            string muted,
+            string accent,
+            string scannerShade,
+            string register,
+            string scrap,
+            string rework,
+            string neutral,
+            string neutralText)
+        {
+            Resources["PageBackground"] = Color.FromArgb(page);
+            Resources["CardBackground"] = Color.FromArgb(card);
+            Resources["StatusBackground"] = Color.FromArgb(status);
+            Resources["PrimaryText"] = Color.FromArgb(primary);
+            Resources["SecondaryText"] = Color.FromArgb(secondary);
+            Resources["MutedText"] = Color.FromArgb(muted);
+            Resources["AccentRed"] = Color.FromArgb(accent);
+            Resources["ScannerShade"] = Color.FromArgb(scannerShade);
+            Resources["RegisterButton"] = Color.FromArgb(register);
+            Resources["ScrapButton"] = Color.FromArgb(scrap);
+            Resources["ReworkButton"] = Color.FromArgb(rework);
+            Resources["NeutralButton"] = Color.FromArgb(neutral);
+            Resources["NeutralButtonText"] = Color.FromArgb(neutralText);
+        }
+
+        private void HighlightThemeButton(Button selectedButton)
+        {
+            var buttons = new[] { ThemeOneButton, ThemeTwoButton, ThemeThreeButton, ThemeFourButton };
+            foreach (var button in buttons)
+            {
+                button.BackgroundColor = Resources.TryGetValue("NeutralButton", out var neutral)
+                    ? (Color)neutral
+                    : Color.FromArgb("#E2E8F0");
+                button.TextColor = Resources.TryGetValue("NeutralButtonText", out var neutralText)
+                    ? (Color)neutralText
+                    : Color.FromArgb("#0F172A");
+            }
+
+            selectedButton.BackgroundColor = Resources.TryGetValue("AccentRed", out var accent)
+                ? (Color)accent
+                : Color.FromArgb("#FF3B30");
+            selectedButton.TextColor = Colors.White;
+        }
+
+        private void OnThemeOneClicked(object? sender, EventArgs e) => ApplyTheme(ThemePreset.Clean);
+
+        private void OnThemeTwoClicked(object? sender, EventArgs e) => ApplyTheme(ThemePreset.Glass);
+
+        private void OnThemeThreeClicked(object? sender, EventArgs e) => ApplyTheme(ThemePreset.Soft);
+
+        private void OnThemeFourClicked(object? sender, EventArgs e) => ApplyTheme(ThemePreset.Contrast);
 
         private async void OnOrderChanged(object? sender, TextChangedEventArgs e)
         {
@@ -557,6 +696,13 @@ namespace Trackii.App
             {
                 StatusLabel.Text = $"No se pudo abrir rework: {ex.Message}";
             }
+        }
+
+        private void OnResetClicked(object? sender, EventArgs e)
+        {
+            ResetForm();
+            StatusLabel.Text = "Formulario limpiado.";
+            DetectionLabel.Text = "Listo para detectar códigos.";
         }
 
         private void StartScanAnimation()
