@@ -42,7 +42,6 @@ namespace Trackii.App.Views
         {
             base.OnAppearing();
 
-            UpdateHeader();
             var status = await Permissions.RequestAsync<Permissions.Camera>();
             _hasPermission = status == PermissionStatus.Granted;
             if (!_hasPermission)
@@ -52,7 +51,6 @@ namespace Trackii.App.Views
                 return;
             }
 
-            UpdateHeader();
             StatusLabel.Text = "Escaneo instantáneo activo";
             DetectionLabel.Text = "Listo para detectar códigos.";
             StartScanner();
@@ -129,21 +127,6 @@ namespace Trackii.App.Views
             catch (Exception ex)
             {
                 StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
-            }
-        }
-
-        private async void OnLoginClicked(object? sender, EventArgs e)
-        {
-            try
-            {
-                StopScanner();
-                StopScanAnimation();
-                CancelDetectedOverlay();
-                await MainThread.InvokeOnMainThreadAsync(() => Shell.Current.GoToAsync("//Login"));
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error al abrir login: {ex.Message}";
             }
         }
 
@@ -242,24 +225,6 @@ namespace Trackii.App.Views
             catch (TaskCanceledException)
             {
                 // Ignore cancelled reset
-            }
-        }
-
-        private void UpdateHeader()
-        {
-            if (_session.IsLoggedIn)
-            {
-                AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
-                AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
-                LoginButton.IsVisible = false;
-            }
-            else
-            {
-                AuthTitleLabel.Text = "Inicia sesión";
-                AuthSubtitleLabel.Text = "Logeate acá para continuar.";
-                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
-                LoginButton.IsVisible = true;
             }
         }
 
