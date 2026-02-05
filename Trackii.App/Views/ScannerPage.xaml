@@ -4,51 +4,64 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="#FFFFFF"
-    Title="Scanner">
-    <Grid RowDefinitions="Auto,*,Auto" Padding="14" RowSpacing="12">
-        <Grid Grid.Row="0" ColumnDefinitions="1*,9*" ColumnSpacing="10" HeightRequest="54">
+    Title="Scanner"
+    BackgroundColor="#FFFFFF">
+
+    <Grid Padding="14" RowSpacing="12" RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" ColumnSpacing="10" ColumnDefinitions="1*,9*" HeightRequest="54">
             <Frame Grid.Column="0" Padding="6" CornerRadius="12" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF" HorizontalOptions="Fill" VerticalOptions="Fill">
-                <Image Source="dotnet_bot.png" Aspect="AspectFit" HeightRequest="32" HorizontalOptions="Center" VerticalOptions="Center">
-                    <Image.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnLogoTapped" />
-                    </Image.GestureRecognizers>
-                </Image>
+                <Frame.Content>
+                    <Image Source="dotnet_bot.png" Aspect="AspectFit" HeightRequest="32" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnLogoTapped" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </Frame.Content>
             </Frame>
 
             <Frame Grid.Column="1" Padding="12,8" CornerRadius="12" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#F8FAFC">
-                <VerticalStackLayout Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
-                    <Label x:Name="HeaderLocationLabel" Text="Localidad: -" FontSize="12" TextColor="#334155" HorizontalTextAlignment="End" />
-                    <Label x:Name="HeaderDeviceLabel" Text="Tableta: -" FontSize="12" TextColor="#0F172A" FontAttributes="Bold" HorizontalTextAlignment="End" />
-                </VerticalStackLayout>
+                <Frame.Content>
+                    <VerticalStackLayout Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                        <Label x:Name="HeaderLocationLabel" Text="Localidad: -" FontSize="12" TextColor="#334155" HorizontalTextAlignment="End" />
+                        <Label x:Name="HeaderDeviceLabel" Text="Tableta: -" FontSize="12" TextColor="#0F172A" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Frame.Content>
             </Frame>
         </Grid>
 
         <Frame Grid.Row="1" Padding="0" CornerRadius="24" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#F8FAFC">
-            <Grid>
-                <ContentView x:Name="ScannerHost" />
-                <BoxView BackgroundColor="#FFFFFF" Opacity="0.12" />
-                <BoxView x:Name="ScanLine" HeightRequest="3" BackgroundColor="#2563EB" Opacity="0.95" HorizontalOptions="Fill" VerticalOptions="Start" />
+            <Frame.Content>
+                <Grid>
+                    <ContentView x:Name="ScannerHost" />
+                    <BoxView BackgroundColor="#FFFFFF" Opacity="0.12" />
+                    <BoxView x:Name="ScanLine" HeightRequest="3" BackgroundColor="#2563EB" Opacity="0.95" HorizontalOptions="Fill" VerticalOptions="Start" />
 
-                <Frame x:Name="DetectedOverlay" BackgroundColor="#16A34A" CornerRadius="14" Padding="10" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" HasShadow="False">
-                    <HorizontalStackLayout Spacing="8">
-                        <Label Text="✓" TextColor="White" FontAttributes="Bold" />
-                        <Label x:Name="DetectedTextLabel" Text="Código detectado" TextColor="White" FontAttributes="Bold" />
-                    </HorizontalStackLayout>
-                </Frame>
-            </Grid>
+                    <Frame x:Name="DetectedOverlay" BackgroundColor="#16A34A" CornerRadius="14" Padding="10" Opacity="0" HorizontalOptions="Center" VerticalOptions="Center" HasShadow="False">
+                        <Frame.Content>
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="✓" TextColor="White" FontAttributes="Bold" />
+                                <Label x:Name="DetectedTextLabel" Text="Código detectado" TextColor="White" FontAttributes="Bold" />
+                            </HorizontalStackLayout>
+                        </Frame.Content>
+                    </Frame>
+                </Grid>
+            </Frame.Content>
+        </Frame>
 
         <Frame Grid.Row="2" Padding="12" CornerRadius="18" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF">
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <VerticalStackLayout Spacing="6">
-                    <Label Text="No. de orden" FontAttributes="Bold" TextColor="#0F172A" />
-                    <Entry x:Name="OrderEntry" Placeholder="7 dígitos" TextChanged="OnOrderChanged" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
-                </VerticalStackLayout>
-                <VerticalStackLayout Grid.Column="1" Spacing="6">
-                    <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
-                    <Entry x:Name="PartEntry" Placeholder="Código de parte" TextChanged="OnPartChanged" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
-                </VerticalStackLayout>
-            </Grid>
+            <Frame.Content>
+                <Grid ColumnSpacing="10" ColumnDefinitions="*,*">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="No. de orden" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="OrderEntry" Placeholder="7 dígitos" TextChanged="OnOrderChanged" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Grid.Column="1" Spacing="6">
+                        <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
+                        <Entry x:Name="PartEntry" Placeholder="Código de parte" TextChanged="OnPartChanged" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Frame.Content>
         </Frame>
     </Grid>
 </ContentPage>
