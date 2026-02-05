@@ -3,6 +3,7 @@
     x:Class="Trackii.App.Views.ScannerPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:barcode="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
     Shell.NavBarIsVisible="False"
     Title="Scanner"
     BackgroundColor="#FFFFFF">
@@ -32,7 +33,7 @@
         <Frame Grid.Row="1" Padding="0" CornerRadius="24" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#F8FAFC">
             <Frame.Content>
                 <Grid>
-                    <ContentView x:Name="ScannerHost" />
+                    <barcode:CameraView x:Name="NativeCameraView" />
                     <BoxView BackgroundColor="#FFFFFF" Opacity="0.12" />
                     <BoxView x:Name="ScanLine" HeightRequest="3" BackgroundColor="#2563EB" Opacity="0.95" HorizontalOptions="Fill" VerticalOptions="Start" />
 

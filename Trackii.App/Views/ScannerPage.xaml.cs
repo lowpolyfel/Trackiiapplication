@@ -12,18 +12,14 @@ namespace Trackii.App.Views
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
         private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(300);
-        private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(2);
 
         private readonly AppSession _session;
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
-        private CancellationTokenSource? _idleResetCts;
-        private object? _nativeCameraView;
         private EventInfo? _nativeDetectionEvent;
         private Delegate? _nativeDetectionHandler;
         private string? _lastResult;
         private DateTime _lastScanAt;
-        private bool _hasPermission;
         private bool _isNavigating;
         private bool _isProcessingDetection;
         private int _logoTapCount;
@@ -32,7 +28,8 @@ namespace Trackii.App.Views
         {
             InitializeComponent();
             _session = App.Services.GetRequiredService<AppSession>();
-            BuildScanner();
+            ConfigureScanner();
+            AttachNativeDetectedHandler();
         }
 
         protected override async void OnAppearing()
@@ -41,23 +38,19 @@ namespace Trackii.App.Views
             UpdateHeader();
 
             var status = await Permissions.RequestAsync<Permissions.Camera>();
-            _hasPermission = status == PermissionStatus.Granted;
-            if (!_hasPermission)
+            if (status != PermissionStatus.Granted)
             {
                 await DisplayAlert("Permiso requerido", "Se requiere permiso de cámara para escanear.", "OK");
                 StopScanner();
                 return;
             }
 
-            if (ScannerHost.Content is null)
-            {
-                BuildScanner();
-            }
-
             _isProcessingDetection = false;
+            _lastResult = null;
+            _lastScanAt = DateTime.MinValue;
+
             SetScannerIsDetecting(true);
             StartScanAnimation();
-            ScheduleIdleReset();
         }
 
         protected override void OnDisappearing()
@@ -65,7 +58,6 @@ namespace Trackii.App.Views
             StopScanner();
             StopScanAnimation();
             CancelDetectedOverlay();
-            CancelIdleReset();
             base.OnDisappearing();
         }
 
@@ -87,64 +79,101 @@ namespace Trackii.App.Views
             await Shell.Current.GoToAsync("//Login");
         }
 
-        private void BuildScanner()
+        private void ConfigureScanner()
         {
-            DisposeScanner();
-            _nativeCameraView = CreateNativeCameraView();
-            ScannerHost.Content = _nativeCameraView as View;
+            var cameraType = NativeCameraView.GetType();
+
+            SetProperty(cameraType, NativeCameraView, "CaptureQuality", "Medium");
+            SetProperty(cameraType, NativeCameraView, "ScanInterval", 50);
+            SetProperty(cameraType, NativeCameraView, "IsDetecting", true);
+            SetProperty(cameraType, NativeCameraView, "IsScanning", true);
+            SetProperty(cameraType, NativeCameraView, "CameraEnabled", true);
+
+            ConfigureCode128Only(cameraType, NativeCameraView);
         }
 
-        private View? CreateNativeCameraView()
+        private static void ConfigureCode128Only(Type cameraType, object cameraInstance)
         {
-            var cameraType = ResolveCameraViewType();
-            if (cameraType is null)
+            foreach (var propertyName in new[] { "Formats", "BarcodeFormats", "AcceptedBarcodeFormats", "Symbologies" })
             {
-                return null;
-            }
-
-            if (Activator.CreateInstance(cameraType) is not View view)
-            {
-                return null;
-            }
-
-            SetProperty(cameraType, view, "CaptureQuality", "Medium");
-            SetProperty(cameraType, view, "ScanInterval", 50);
-            SetProperty(cameraType, view, "IsDetecting", true);
-            SetProperty(cameraType, view, "IsScanning", true);
-
-            AttachNativeDetectedHandler(cameraType, view);
-            return view;
-        }
-
-        private static Type? ResolveCameraViewType()
-        {
-            var names = new[]
-            {
-                "BarcodeScanning.CameraView, BarcodeScanning.Native.Maui",
-                "BarcodeScanning.Native.Maui.CameraView, BarcodeScanning.Native.Maui",
-                "BarcodeScanning.Maui.CameraView, BarcodeScanning.Native.Maui"
-            };
-
-            foreach (var name in names)
-            {
-                var type = Type.GetType(name, throwOnError: false);
-                if (type is not null)
+                var property = cameraType.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property is null || !property.CanWrite)
                 {
-                    return type;
+                    continue;
+                }
+
+                try
+                {
+                    if (property.PropertyType == typeof(string))
+                    {
+                        property.SetValue(cameraInstance, "Code128");
+                        return;
+                    }
+
+                    if (property.PropertyType.IsEnum)
+                    {
+                        var enumValue = Enum.Parse(property.PropertyType, "Code128", true);
+                        property.SetValue(cameraInstance, enumValue);
+                        return;
+                    }
+                }
+                catch
+                {
+                    // continue with next candidate property
                 }
             }
 
-            var assembly = AppDomain.CurrentDomain
-                .GetAssemblies()
-                .FirstOrDefault(a => a.GetName().Name == "BarcodeScanning.Native.Maui");
-            return assembly?.GetTypes().FirstOrDefault(t => t.Name == "CameraView" && typeof(View).IsAssignableFrom(t));
+            foreach (var optionsPropertyName in new[] { "Options", "ReaderOptions", "ScannerOptions" })
+            {
+                var optionsProp = cameraType.GetProperty(optionsPropertyName, BindingFlags.Public | BindingFlags.Instance);
+                var options = optionsProp?.GetValue(cameraInstance);
+                if (options is null)
+                {
+                    continue;
+                }
+
+                var optionsType = options.GetType();
+                SetProperty(optionsType, options, "Multiple", false);
+                SetProperty(optionsType, options, "AutoRotate", true);
+
+                foreach (var formatPropertyName in new[] { "Formats", "BarcodeFormats", "AcceptedBarcodeFormats", "Symbologies" })
+                {
+                    var formatProp = optionsType.GetProperty(formatPropertyName, BindingFlags.Public | BindingFlags.Instance);
+                    if (formatProp is null || !formatProp.CanWrite)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        if (formatProp.PropertyType == typeof(string))
+                        {
+                            formatProp.SetValue(options, "Code128");
+                            return;
+                        }
+
+                        if (formatProp.PropertyType.IsEnum)
+                        {
+                            var enumValue = Enum.Parse(formatProp.PropertyType, "Code128", true);
+                            formatProp.SetValue(options, enumValue);
+                            return;
+                        }
+                    }
+                    catch
+                    {
+                        // ignore and continue
+                    }
+                }
+            }
         }
 
-        private void AttachNativeDetectedHandler(Type cameraType, object cameraInstance)
+        private void AttachNativeDetectedHandler()
         {
+            var cameraType = NativeCameraView.GetType();
             _nativeDetectionEvent = cameraType.GetEvent("BarcodesDetected")
                 ?? cameraType.GetEvent("BarcodeDetected")
                 ?? cameraType.GetEvent("DetectionFinished");
+
             if (_nativeDetectionEvent is null)
             {
                 return;
@@ -159,16 +188,13 @@ namespace Trackii.App.Views
             try
             {
                 _nativeDetectionHandler = CreateDetectionDelegate(delegateType);
-                _nativeDetectionEvent.AddEventHandler(cameraInstance, _nativeDetectionHandler);
+                _nativeDetectionEvent.AddEventHandler(NativeCameraView, _nativeDetectionHandler);
             }
             catch
             {
                 _nativeDetectionEvent = null;
                 _nativeDetectionHandler = null;
             }
-
-            var handler = Delegate.CreateDelegate(eventInfo.EventHandlerType!, this, nameof(OnNativeBarcodesDetected));
-            eventInfo.AddEventHandler(instance, handler);
         }
 
         private Delegate CreateDetectionDelegate(Type delegateType)
@@ -191,13 +217,23 @@ namespace Trackii.App.Views
 
         private void OnNativeDetectionEvent(object args)
         {
-            var result = ExtractBarcodeValue(args);
-            if (string.IsNullOrWhiteSpace(result))
+            var detected = ExtractDetectedBarcode(args);
+            if (detected is null)
             {
                 return;
             }
 
-            _ = MainThread.InvokeOnMainThreadAsync(async () => await ProcessDetectedTextAsync(result));
+            if (!string.IsNullOrWhiteSpace(detected.Format) && !string.Equals(detected.Format, "Code128", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(detected.Value))
+            {
+                return;
+            }
+
+            _ = MainThread.InvokeOnMainThreadAsync(async () => await ProcessDetectedTextAsync(detected.Value.Trim()));
         }
 
         private async Task ProcessDetectedTextAsync(string result)
@@ -207,45 +243,32 @@ namespace Trackii.App.Views
                 return;
             }
 
+            var now = DateTime.UtcNow;
+            if (result == _lastResult && now - _lastScanAt < ScanCooldown)
+            {
+                return;
+            }
+
             _isProcessingDetection = true;
+            _lastResult = result;
+            _lastScanAt = now;
+
             SetScannerIsDetecting(false);
 
-            try
+            await ShowDetectedAsync(result);
+            if (OrderRegex.IsMatch(result))
             {
-                var now = DateTime.UtcNow;
-                if (result == _lastResult && now - _lastScanAt < ScanCooldown)
-                {
-                    return;
-                }
-
-                _lastResult = result;
-                _lastScanAt = now;
-                ScheduleIdleReset();
-
-                await ShowDetectedAsync(result);
-                if (OrderRegex.IsMatch(result))
-                {
-                    OrderEntry.Text = result;
-                }
-                else
-                {
-                    PartEntry.Text = result;
-                }
-
-                await TryGoToDetailsAsync();
+                OrderEntry.Text = result;
             }
-            finally
+            else
             {
-                if (!_isNavigating)
-                {
-                    SetScannerIsDetecting(true);
-                }
-
-                _isProcessingDetection = false;
+                PartEntry.Text = result;
             }
+
+            await TryGoToDetailsAsync();
         }
 
-        private static string? ExtractBarcodeValue(object args)
+        private static DetectedBarcode? ExtractDetectedBarcode(object args)
         {
             var queue = new Queue<object?>();
             queue.Enqueue(args);
@@ -260,17 +283,23 @@ namespace Trackii.App.Views
 
                 if (current is string text && !string.IsNullOrWhiteSpace(text))
                 {
-                    return text.Trim();
+                    return new DetectedBarcode(text.Trim(), null);
                 }
 
                 var type = current.GetType();
-                foreach (var property in new[] { "Value", "RawValue", "DisplayValue", "Text" })
+
+                var value = ReadStringProperty(type, current, "Value")
+                    ?? ReadStringProperty(type, current, "RawValue")
+                    ?? ReadStringProperty(type, current, "DisplayValue")
+                    ?? ReadStringProperty(type, current, "Text");
+
+                var format = ReadStringProperty(type, current, "Format")
+                    ?? ReadStringProperty(type, current, "BarcodeType")
+                    ?? ReadStringProperty(type, current, "Symbology");
+
+                if (!string.IsNullOrWhiteSpace(value))
                 {
-                    var prop = type.GetProperty(property, BindingFlags.Public | BindingFlags.Instance);
-                    if (prop?.GetValue(current) is string value && !string.IsNullOrWhiteSpace(value))
-                    {
-                        return value.Trim();
-                    }
+                    return new DetectedBarcode(value.Trim(), format);
                 }
 
                 foreach (var property in new[] { "Results", "Barcodes", "DetectedBarcodes", "Items" })
@@ -287,6 +316,18 @@ namespace Trackii.App.Views
             }
 
             return null;
+        }
+
+        private static string? ReadStringProperty(Type type, object instance, string propertyName)
+        {
+            var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop?.GetValue(instance) is null)
+            {
+                return null;
+            }
+
+            var value = prop.GetValue(instance);
+            return value?.ToString();
         }
 
         private static void SetProperty(Type type, object instance, string propertyName, object value)
@@ -316,70 +357,17 @@ namespace Trackii.App.Views
 
         private void SetScannerIsDetecting(bool value)
         {
-            if (_nativeCameraView is null)
-            {
-                return;
-            }
-
-            var type = _nativeCameraView.GetType();
-            SetProperty(type, _nativeCameraView, "IsDetecting", value);
-            SetProperty(type, _nativeCameraView, "IsScanning", value);
-            SetProperty(type, _nativeCameraView, "IsEnabled", value);
-        }
-
-        private void DisposeScanner()
-        {
-            if (_nativeCameraView is not null && _nativeDetectionEvent is not null && _nativeDetectionHandler is not null)
-            {
-                _nativeDetectionEvent.RemoveEventHandler(_nativeCameraView, _nativeDetectionHandler);
-            }
-
-            _nativeDetectionEvent = null;
-            _nativeDetectionHandler = null;
-            _nativeCameraView = null;
-            ScannerHost.Content = null;
+            var type = NativeCameraView.GetType();
+            SetProperty(type, NativeCameraView, "IsDetecting", value);
+            SetProperty(type, NativeCameraView, "IsScanning", value);
+            SetProperty(type, NativeCameraView, "IsEnabled", true);
+            SetProperty(type, NativeCameraView, "CameraEnabled", value);
         }
 
         private void StopScanner()
         {
             SetScannerIsDetecting(false);
             CancelDetectedOverlay();
-        }
-
-        private void ScheduleIdleReset()
-        {
-            CancelIdleReset();
-            _idleResetCts = new CancellationTokenSource();
-            _ = ResetAfterIdleAsync(_idleResetCts.Token);
-        }
-
-        private void CancelIdleReset()
-        {
-            _idleResetCts?.Cancel();
-            _idleResetCts = null;
-        }
-
-        private async Task ResetAfterIdleAsync(CancellationToken token)
-        {
-            try
-            {
-                await Task.Delay(IdleResetDelay, token);
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                await MainThread.InvokeOnMainThreadAsync(() =>
-                {
-                    SetScannerIsDetecting(true);
-                    _lastResult = null;
-                    _lastScanAt = DateTime.MinValue;
-                });
-            }
-            catch (TaskCanceledException)
-            {
-                // ignore
-            }
         }
 
         private async void OnOrderChanged(object? sender, TextChangedEventArgs e)
@@ -444,7 +432,7 @@ namespace Trackii.App.Views
             {
                 try
                 {
-                    var travel = ScannerHost.Height;
+                    var travel = NativeCameraView.Height;
                     if (travel <= 0)
                     {
                         await Task.Delay(200, token);
@@ -496,5 +484,7 @@ namespace Trackii.App.Views
             _detectedCts?.Cancel();
             _detectedCts = null;
         }
+
+        private sealed record DetectedBarcode(string Value, string? Format);
     }
 }
