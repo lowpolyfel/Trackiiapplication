@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Trackii.App.Views.ScanDetailsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#FFFFFF"
+    Title="Detalle de escaneo">
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="12">
+            <Grid ColumnDefinitions="1*,9*" ColumnSpacing="10" HeightRequest="54">
+                <Frame Grid.Column="0" Padding="6" CornerRadius="12" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF" HorizontalOptions="Fill" VerticalOptions="Fill">
+                    <Image Source="dotnet_bot.png" Aspect="AspectFit" HeightRequest="32" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Image.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnLogoTapped" />
+                        </Image.GestureRecognizers>
+                    </Image>
+                </Frame>
+
+                <Frame Grid.Column="1" Padding="12,8" CornerRadius="12" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#F8FAFC">
+                    <VerticalStackLayout Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                        <Label x:Name="HeaderLocationLabel" Text="Localidad: -" FontSize="12" TextColor="#334155" HorizontalTextAlignment="End" />
+                        <Label x:Name="HeaderDeviceLabel" Text="Tableta: -" FontSize="12" TextColor="#0F172A" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                    </VerticalStackLayout>
+                </Frame>
+            </Grid>
+
+            <Frame Padding="12" CornerRadius="16" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="No. de orden" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="OrderEntry" TextChanged="OnOrderChanged" TextColor="#0F172A" Placeholder="7 dígitos" PlaceholderColor="#94A3B8" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="No. de parte" FontAttributes="Bold" TextColor="#0F172A" />
+                            <Entry x:Name="PartEntry" TextChanged="OnPartChanged" TextColor="#0F172A" Placeholder="Código de parte" PlaceholderColor="#94A3B8" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Grid x:Name="LoadingOverlay" IsVisible="False">
+                        <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                            <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="#2563EB" />
+                            <Label Text="Consultando..." TextColor="#334155" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="12" CornerRadius="16" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Información del producto" FontAttributes="Bold" TextColor="#0F172A" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" RowDefinitions="Auto,Auto">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Área" FontAttributes="Bold" TextColor="#334155" />
+                            <Entry x:Name="AreaEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="Familia" FontAttributes="Bold" TextColor="#334155" />
+                            <Entry x:Name="FamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2" Spacing="6">
+                            <Label Text="Subfamilia" FontAttributes="Bold" TextColor="#334155" />
+                            <Entry x:Name="SubfamilyEntry" Text="-" IsReadOnly="True" TextColor="#0F172A" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="12" CornerRadius="16" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Cantidad de piezas" FontAttributes="Bold" TextColor="#0F172A" />
+                    <Entry x:Name="QuantityEntry" Placeholder="Ingresa cantidad" Keyboard="Numeric" TextChanged="OnQuantityChanged" TextColor="#0F172A" PlaceholderColor="#94A3B8" />
+                    <Label x:Name="QuantityHintLabel" Text="" TextColor="#64748B" FontSize="12" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button x:Name="RegisterButton" Text="Registrar" BackgroundColor="#22C55E" TextColor="White" CornerRadius="14" Clicked="OnRegisterClicked" />
+                        <Button x:Name="ScrapButton" Grid.Column="1" Text="Scrap" BackgroundColor="#DC2626" TextColor="White" CornerRadius="14" Clicked="OnScrapClicked" />
+                    </Grid>
+                    <Button x:Name="ReworkButton" Text="Rework" BackgroundColor="#F97316" TextColor="White" CornerRadius="14" Clicked="OnReworkClicked" />
+                    <Button Text="Volver al escáner" BackgroundColor="#E2E8F0" TextColor="#0F172A" CornerRadius="14" Clicked="OnBackScannerClicked" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <Label x:Name="StatusLabel" TextColor="#0F172A" FontAttributes="Bold" />
+            <Label x:Name="DetectionLabel" TextColor="#64748B" FontSize="12" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

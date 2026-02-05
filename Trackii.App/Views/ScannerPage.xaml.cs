@@ -1,61 +1,53 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Microsoft.Maui.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
-using Trackii.App.Models;
+using Microsoft.Maui.ApplicationModel;
 using Trackii.App.Services;
-using ZXing.Net.Maui;
-using ZXing.Net.Maui.Controls;
 
 namespace Trackii.App.Views
 {
     public partial class ScannerPage : ContentPage
     {
         private static readonly Regex OrderRegex = new("^\\d{7}$", RegexOptions.Compiled);
-        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(500);
-        private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(3);
-        private CameraBarcodeReaderView? _barcodeReader;
+        private static readonly TimeSpan ScanCooldown = TimeSpan.FromMilliseconds(300);
+        private static readonly TimeSpan IdleResetDelay = TimeSpan.FromSeconds(2);
         private CancellationTokenSource? _animationCts;
         private CancellationTokenSource? _detectedCts;
         private CancellationTokenSource? _idleResetCts;
         private readonly AppSession _session;
-        private readonly ApiClient _apiClient;
-        private readonly SemaphoreSlim _scanLock = new(1, 1);
-        private bool _isProcessing;
+        private object? _cameraView;
         private string? _lastResult;
         private DateTime _lastScanAt;
         private DateTime _lastDetectionAt;
         private bool _hasPermission;
-        private uint? _maxQuantity;
-        private PartLookupResponse? _partInfo;
-        private WorkOrderContextResponse? _workOrderContext;
+        private bool _isNavigating;
+        private bool _isProcessingDetection;
+        private int _logoTapCount;
 
         public ScannerPage()
         {
             InitializeComponent();
             _session = App.Services.GetRequiredService<AppSession>();
-            _apiClient = App.Services.GetRequiredService<ApiClient>();
             BuildScanner();
         }
 
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-
             UpdateHeader();
+
             var status = await Permissions.RequestAsync<Permissions.Camera>();
             _hasPermission = status == PermissionStatus.Granted;
             if (!_hasPermission)
             {
-                StatusLabel.Text = "Permiso de cámara requerido.";
+                await DisplayAlert("Permiso requerido", "Se requiere permiso de cámara para escanear.", "OK");
                 StopScanner();
                 return;
             }
 
-            UpdateHeader();
-            StatusLabel.Text = "Escaneo instantáneo activo";
-            DetectionLabel.Text = "Listo para detectar códigos.";
-            StartScanner();
+            _isProcessingDetection = false;
+            SetScannerIsDetecting(true);
             StartScanAnimation();
             ScheduleIdleReset();
         }
@@ -69,21 +61,126 @@ namespace Trackii.App.Views
             base.OnDisappearing();
         }
 
-        private async void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
+        private void UpdateHeader()
         {
-            var result = e.Results?.FirstOrDefault()?.Value?.Trim();
+            HeaderLocationLabel.Text = $"Localidad: {_session.LocationName}";
+            HeaderDeviceLabel.Text = $"Tableta: {_session.DeviceName}";
+
+            if (!_session.IsLoggedIn)
+            {
+                HeaderLocationLabel.Text = "Localidad: sin sesión";
+                HeaderDeviceLabel.Text = "Tableta: sin sesión";
+            }
+        }
+
+        private async void OnLogoTapped(object? sender, TappedEventArgs e)
+        {
+            _logoTapCount++;
+            if (_logoTapCount < 5)
+            {
+                return;
+            }
+
+            _logoTapCount = 0;
+            try
+            {
+                await Shell.Current.GoToAsync("//Login");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Navegación", $"No se pudo abrir login: {ex.Message}", "OK");
+            }
+        }
+
+        private void BuildScanner()
+        {
+            _cameraView = CreateNativeCameraView();
+            ScannerHost.Content = _cameraView as View;
+        }
+
+        private View? CreateNativeCameraView()
+        {
+            var type = ResolveCameraViewType();
+            if (type is null)
+            {
+                return null;
+            }
+
+            if (Activator.CreateInstance(type) is not View view)
+            {
+                return null;
+            }
+
+            SetProperty(type, view, "CaptureQuality", "Medium");
+            SetProperty(type, view, "ScanInterval", 50);
+            SetProperty(type, view, "IsDetecting", true);
+            SetProperty(type, view, "IsScanning", true);
+            SetProperty(type, view, "IsEnabled", true);
+            TryAttachDetectedHandler(type, view);
+            return view;
+        }
+
+        private static Type? ResolveCameraViewType()
+        {
+            var names = new[]
+            {
+                "BarcodeScanning.CameraView, BarcodeScanning.Native.Maui",
+                "BarcodeScanning.Native.Maui.CameraView, BarcodeScanning.Native.Maui",
+                "BarcodeScanning.Maui.CameraView, BarcodeScanning.Native.Maui"
+            };
+
+            foreach (var name in names)
+            {
+                var type = Type.GetType(name, throwOnError: false);
+                if (type is not null)
+                {
+                    return type;
+                }
+            }
+
+            var assembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(a => string.Equals(a.GetName().Name, "BarcodeScanning.Native.Maui", StringComparison.Ordinal));
+            return assembly?.GetTypes().FirstOrDefault(t => t.Name == "CameraView" && typeof(View).IsAssignableFrom(t));
+        }
+
+        private void TryAttachDetectedHandler(Type type, object instance)
+        {
+            var eventInfo = type.GetEvent("BarcodesDetected")
+                ?? type.GetEvent("BarcodeDetected")
+                ?? type.GetEvent("DetectionFinished");
+            if (eventInfo is null)
+            {
+                return;
+            }
+
+            var handler = Delegate.CreateDelegate(eventInfo.EventHandlerType!, this, nameof(OnNativeBarcodesDetected));
+            eventInfo.AddEventHandler(instance, handler);
+        }
+
+        private void OnNativeBarcodesDetected(object? sender, object args)
+        {
+            _ = MainThread.InvokeOnMainThreadAsync(async () => await ProcessDetectedAsync(args));
+        }
+
+        private async Task ProcessDetectedAsync(object args)
+        {
+            if (_isNavigating || _isProcessingDetection)
+            {
+                return;
+            }
+
+            var result = ExtractBarcodeValue(args);
             if (string.IsNullOrWhiteSpace(result))
             {
                 return;
             }
 
+            _isProcessingDetection = true;
+            SetScannerIsDetecting(false);
+
             try
             {
-                if (_isProcessing)
-                {
-                    return;
-                }
-
                 _lastDetectionAt = DateTime.UtcNow;
                 var now = _lastDetectionAt;
                 if (result == _lastResult && now - _lastScanAt < ScanCooldown)
@@ -95,110 +192,120 @@ namespace Trackii.App.Views
                 _lastScanAt = now;
                 ScheduleIdleReset();
 
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                await ShowDetectedAsync(result);
+                if (OrderRegex.IsMatch(result))
                 {
-                    StatusLabel.Text = $"Leído: {result}";
-                    DetectionLabel.Text = "Detectado al instante.";
-                    await ShowDetectedAsync(result);
-                    if (OrderRegex.IsMatch(result))
-                    {
-                        if (!string.Equals(OrderEntry.Text, result, StringComparison.Ordinal))
-                        {
-                            OrderEntry.Text = result;
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        if (!string.Equals(PartEntry.Text, result, StringComparison.Ordinal))
-                        {
-                            PartEntry.Text = result;
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
-
-                    await TryFinalizeScanAsync();
-                });
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error al procesar lectura: {ex.Message}";
-            }
-        }
-
-        private async void OnLoginClicked(object? sender, EventArgs e)
-        {
-            try
-            {
-                StopScanner();
-                StopScanAnimation();
-                CancelDetectedOverlay();
-                await MainThread.InvokeOnMainThreadAsync(() => Shell.Current.GoToAsync("//Login"));
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error al abrir login: {ex.Message}";
-            }
-        }
-
-        private void BuildScanner()
-        {
-            var reader = new CameraBarcodeReaderView
-            {
-                CameraLocation = CameraLocation.Rear,
-                IsDetecting = true,
-                Options = new BarcodeReaderOptions
-                {
-                    AutoRotate = true,
-                    TryHarder = false,
-                    TryInverted = false,
-                    Multiple = false,
+                    OrderEntry.Text = result;
                 }
-            };
+                else
+                {
+                    PartEntry.Text = result;
+                }
 
-            reader.BarcodesDetected += OnBarcodesDetected;
-            ScannerHost.Content = reader;
-            _barcodeReader = reader;
+                await TryGoToDetailsAsync();
+            }
+            finally
+            {
+                if (!_isNavigating)
+                {
+                    SetScannerIsDetecting(true);
+                }
+
+                _isProcessingDetection = false;
+            }
         }
 
-        private void DisposeScanner()
+        private static string? ExtractBarcodeValue(object args)
         {
-            if (_barcodeReader is not null)
+            if (args is null)
             {
-                _barcodeReader.BarcodesDetected -= OnBarcodesDetected;
-                _barcodeReader.IsDetecting = false;
+                return null;
             }
 
-            ScannerHost.Content = null;
-            _barcodeReader = null;
-            CancelIdleReset();
+            var candidates = new Queue<object?>();
+            candidates.Enqueue(args);
+
+            while (candidates.Count > 0)
+            {
+                var current = candidates.Dequeue();
+                if (current is null)
+                {
+                    continue;
+                }
+
+                if (current is string raw && !string.IsNullOrWhiteSpace(raw))
+                {
+                    return raw.Trim();
+                }
+
+                var type = current.GetType();
+                foreach (var propName in new[] { "Value", "RawValue", "DisplayValue", "Text" })
+                {
+                    var prop = type.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                    if (prop?.GetValue(current) is string value && !string.IsNullOrWhiteSpace(value))
+                    {
+                        return value.Trim();
+                    }
+                }
+
+                foreach (var propName in new[] { "Results", "Barcodes", "DetectedBarcodes", "Items" })
+                {
+                    var prop = type.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance);
+                    if (prop?.GetValue(current) is System.Collections.IEnumerable enumerable)
+                    {
+                        foreach (var item in enumerable)
+                        {
+                            candidates.Enqueue(item);
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
-        private void StartScanner()
+        private static void SetProperty(Type type, object instance, string propertyName, object value)
         {
-            if (!_hasPermission)
+            var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+            if (prop is null || !prop.CanWrite)
             {
                 return;
             }
 
-            StopScanner();
-            BuildScanner();
-
-            if (_barcodeReader is not null)
+            try
             {
-                _barcodeReader.IsDetecting = true;
+                if (prop.PropertyType.IsEnum && value is string enumText)
+                {
+                    var enumValue = Enum.Parse(prop.PropertyType, enumText, true);
+                    prop.SetValue(instance, enumValue);
+                    return;
+                }
+
+                var converted = Convert.ChangeType(value, prop.PropertyType);
+                prop.SetValue(instance, converted);
             }
+            catch
+            {
+                // best-effort compatibility
+            }
+        }
+
+        private void SetScannerIsDetecting(bool value)
+        {
+            if (_cameraView is null)
+            {
+                return;
+            }
+
+            var type = _cameraView.GetType();
+            SetProperty(type, _cameraView, "IsDetecting", value);
+            SetProperty(type, _cameraView, "IsScanning", value);
+            SetProperty(type, _cameraView, "IsEnabled", value);
         }
 
         private void StopScanner()
         {
-            DisposeScanner();
+            SetScannerIsDetecting(false);
             CancelDetectedOverlay();
         }
 
@@ -227,39 +334,15 @@ namespace Trackii.App.Views
 
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
-                    if (_barcodeReader is not null)
-                    {
-                        _barcodeReader.IsDetecting = true;
-                    }
-
+                    SetScannerIsDetecting(true);
                     _lastResult = null;
                     _lastScanAt = DateTime.MinValue;
                     _lastDetectionAt = DateTime.MinValue;
-                    StatusLabel.Text = "Escaneo instantáneo activo";
-                    DetectionLabel.Text = "Listo para detectar códigos.";
                 });
             }
             catch (TaskCanceledException)
             {
-                // Ignore cancelled reset
-            }
-        }
-
-        private void UpdateHeader()
-        {
-            if (_session.IsLoggedIn)
-            {
-                AuthTitleLabel.Text = _session.DeviceName;
-                AuthSubtitleLabel.Text = $"Cuenta: {_session.Username} • Localidad: {_session.LocationName}";
-                AuthCard.BackgroundColor = Color.FromArgb("#E2E8F0");
-                LoginButton.IsVisible = false;
-            }
-            else
-            {
-                AuthTitleLabel.Text = "Inicia sesión";
-                AuthSubtitleLabel.Text = "Logeate acá para continuar.";
-                AuthCard.BackgroundColor = Color.FromArgb("#F1F5F9");
-                LoginButton.IsVisible = true;
+                // ignore
             }
         }
 
@@ -270,10 +353,7 @@ namespace Trackii.App.Views
                 return;
             }
 
-            if (OrderRegex.IsMatch(e.NewTextValue))
-            {
-                await TryFinalizeScanAsync();
-            }
+            await TryGoToDetailsAsync();
         }
 
         private async void OnPartChanged(object? sender, TextChangedEventArgs e)
@@ -283,279 +363,29 @@ namespace Trackii.App.Views
                 return;
             }
 
-            await TryFinalizeScanAsync();
+            await TryGoToDetailsAsync();
         }
 
-        private async Task LoadPartInfoAsync(string partNumber)
-        {
-            try
-            {
-                var response = await _apiClient.GetPartInfoAsync(partNumber, CancellationToken.None);
-                _partInfo = response;
-                if (!response.Found)
-                {
-                    AreaEntry.Text = "-";
-                    FamilyEntry.Text = "-";
-                    SubfamilyEntry.Text = "-";
-                    await DisplayAlert("Producto no encontrado", response.Message ?? "Producto no registrado.", "OK");
-                    return;
-                }
-
-                AreaEntry.Text = response.AreaName ?? "-";
-                FamilyEntry.Text = response.FamilyName ?? "-";
-                SubfamilyEntry.Text = response.SubfamilyName ?? "-";
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error al consultar producto: {ex.Message}";
-            }
-        }
-
-        private async Task LoadWorkOrderContextAsync(string workOrderNumber)
-        {
-            if (!_session.IsLoggedIn)
-            {
-                StatusLabel.Text = "Inicia sesión para continuar.";
-                return;
-            }
-
-            try
-            {
-                var response = await _apiClient.GetWorkOrderContextAsync(workOrderNumber, _session.DeviceId, CancellationToken.None);
-                _workOrderContext = response;
-                if (!response.Found)
-                {
-                    _maxQuantity = null;
-                    QuantityEntry.Text = string.Empty;
-                    QuantityHintLabel.Text = _session.LocationId == 1
-                        ? "Orden no encontrada. Alloy puede crearla al registrar."
-                        : response.Message ?? "Orden no encontrada.";
-                    return;
-                }
-
-                if (!response.CanProceed)
-                {
-                    _maxQuantity = null;
-                    QuantityEntry.Text = string.Empty;
-                    QuantityHintLabel.Text = response.Message ?? "No se puede avanzar.";
-                    return;
-                }
-
-                _maxQuantity = response.MaxQty;
-                if (response.IsFirstStep)
-                {
-                    QuantityEntry.Text = string.Empty;
-                    QuantityHintLabel.Text = "Primera etapa: ingresa la cantidad.";
-                }
-                else
-                {
-                    QuantityEntry.Text = response.PreviousQty?.ToString() ?? string.Empty;
-                    QuantityHintLabel.Text = response.MaxQty is null
-                        ? "Cantidad previa no disponible."
-                        : $"Cantidad máxima: {response.MaxQty}";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error al consultar orden: {ex.Message}";
-            }
-        }
-
-        private async Task TryFinalizeScanAsync()
+        private async Task TryGoToDetailsAsync()
         {
             var order = OrderEntry.Text?.Trim();
             var part = PartEntry.Text?.Trim();
-            if (string.IsNullOrWhiteSpace(order) || string.IsNullOrWhiteSpace(part))
+            if (string.IsNullOrWhiteSpace(order) || string.IsNullOrWhiteSpace(part) || _isNavigating)
             {
                 return;
             }
 
-            if (!await _scanLock.WaitAsync(0))
-            {
-                return;
-            }
-
+            _isNavigating = true;
             try
             {
-                if (_isProcessing)
-                {
-                    return;
-                }
-
-                _isProcessing = true;
-                await SetLoadingStateAsync(true);
-
-                await LoadWorkOrderContextAsync(order);
-                await LoadPartInfoAsync(part);
+                StopScanner();
+                StopScanAnimation();
+                var route = $"{nameof(ScanDetailsPage)}?order={Uri.EscapeDataString(order)}&part={Uri.EscapeDataString(part)}";
+                await Shell.Current.GoToAsync(route);
             }
             finally
             {
-                _isProcessing = false;
-                await SetLoadingStateAsync(false);
-                _scanLock.Release();
-            }
-        }
-
-        private Task SetLoadingStateAsync(bool isLoading)
-        {
-            return MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                LoadingOverlay.IsVisible = isLoading;
-                LoadingIndicator.IsRunning = isLoading;
-            });
-        }
-
-        private void OnQuantityChanged(object? sender, TextChangedEventArgs e)
-        {
-            if (_maxQuantity is null || string.IsNullOrWhiteSpace(e.NewTextValue))
-            {
-                return;
-            }
-
-            if (uint.TryParse(e.NewTextValue, out var value) && value > _maxQuantity.Value)
-            {
-                QuantityEntry.Text = _maxQuantity.Value.ToString();
-                QuantityHintLabel.Text = $"Cantidad máxima: {_maxQuantity}";
-            }
-        }
-
-        private async void OnRegisterClicked(object? sender, EventArgs e)
-        {
-            if (!_session.IsLoggedIn)
-            {
-                StatusLabel.Text = "Inicia sesión para registrar.";
-                return;
-            }
-
-            if (_partInfo is null || !_partInfo.Found)
-            {
-                StatusLabel.Text = "Producto no válido.";
-                return;
-            }
-
-            if (_workOrderContext is null)
-            {
-                StatusLabel.Text = "Orden no válida.";
-                return;
-            }
-
-            if (!_workOrderContext.Found && _session.LocationId != 1)
-            {
-                StatusLabel.Text = _workOrderContext.Message ?? "Orden no encontrada.";
-                return;
-            }
-
-            if (_workOrderContext.Found && !_workOrderContext.CanProceed)
-            {
-                StatusLabel.Text = _workOrderContext.Message ?? "Orden no válida.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(OrderEntry.Text) || string.IsNullOrWhiteSpace(PartEntry.Text))
-            {
-                StatusLabel.Text = "Captura orden y parte.";
-                return;
-            }
-
-            if (!uint.TryParse(QuantityEntry.Text, out var quantity) || quantity == 0)
-            {
-                StatusLabel.Text = "Cantidad inválida.";
-                return;
-            }
-
-            if (_maxQuantity is not null && quantity > _maxQuantity.Value)
-            {
-                StatusLabel.Text = "Cantidad mayor a la permitida.";
-                return;
-            }
-
-            try
-            {
-                var response = await _apiClient.RegisterScanAsync(new RegisterScanRequest
-                {
-                    WorkOrderNumber = OrderEntry.Text.Trim(),
-                    PartNumber = PartEntry.Text.Trim(),
-                    Quantity = quantity,
-                    UserId = _session.UserId,
-                    DeviceId = _session.DeviceId
-                }, CancellationToken.None);
-                StatusLabel.Text = response.Message;
-                DetectionLabel.Text = "Registro exitoso.";
-                ResetForm();
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"No se pudo registrar: {ex.Message}";
-            }
-        }
-
-        private async void OnScrapClicked(object? sender, EventArgs e)
-        {
-            if (!_session.IsLoggedIn)
-            {
-                StatusLabel.Text = "Inicia sesión para cancelar.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(OrderEntry.Text))
-            {
-                StatusLabel.Text = "Captura la orden.";
-                return;
-            }
-
-            try
-            {
-                var orderNumber = OrderEntry.Text.Trim();
-                await LoadWorkOrderContextAsync(orderNumber);
-
-                if (_workOrderContext is null || !_workOrderContext.Found)
-                {
-                    StatusLabel.Text = _workOrderContext?.Message ?? "Orden no encontrada.";
-                    return;
-                }
-
-                var status = _workOrderContext.WorkOrderStatus?.Trim().ToUpperInvariant();
-                if (status is "CANCELLED" or "FINISHED")
-                {
-                    StatusLabel.Text = "La orden no está activa.";
-                    return;
-                }
-
-                if (!_workOrderContext.CanProceed)
-                {
-                    StatusLabel.Text = _workOrderContext.Message ?? "La orden no está activa.";
-                    return;
-                }
-
-                var response = await _apiClient.ScrapAsync(new ScrapRequest
-                {
-                    WorkOrderNumber = orderNumber,
-                    UserId = _session.UserId,
-                    DeviceId = _session.DeviceId,
-                    Reason = "Scrap desde scanner"
-                }, CancellationToken.None);
-                StatusLabel.Text = response.Message;
-                DetectionLabel.Text = "Orden cancelada.";
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"No se pudo cancelar: {ex.Message}";
-            }
-        }
-
-        private async void OnReworkClicked(object? sender, EventArgs e)
-        {
-            try
-            {
-                var orderNumber = OrderEntry.Text?.Trim();
-                var route = string.IsNullOrWhiteSpace(orderNumber)
-                    ? nameof(ReworkPage)
-                    : $"{nameof(ReworkPage)}?order={Uri.EscapeDataString(orderNumber)}";
-                await Shell.Current.GoToAsync(route);
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"No se pudo abrir rework: {ex.Message}";
+                _isNavigating = false;
             }
         }
 
@@ -612,16 +442,16 @@ namespace Trackii.App.Views
                 await Task.WhenAll(
                     DetectedOverlay.FadeTo(1, 120, Easing.CubicOut),
                     DetectedOverlay.ScaleTo(1, 120, Easing.CubicOut));
-                await Task.Delay(350, token);
-                await DetectedOverlay.FadeTo(0, 400, Easing.CubicIn);
+                await Task.Delay(300, token);
+                await DetectedOverlay.FadeTo(0, 300, Easing.CubicIn);
             }
             catch (TaskCanceledException)
             {
-                // Ignore cancelled animation
+                // ignore
             }
             catch (ObjectDisposedException)
             {
-                // Ignore disposed views
+                // ignore
             }
         }
 
@@ -629,20 +459,6 @@ namespace Trackii.App.Views
         {
             _detectedCts?.Cancel();
             _detectedCts = null;
-        }
-
-        private void ResetForm()
-        {
-            OrderEntry.Text = string.Empty;
-            PartEntry.Text = string.Empty;
-            QuantityEntry.Text = string.Empty;
-            QuantityHintLabel.Text = string.Empty;
-            AreaEntry.Text = "-";
-            FamilyEntry.Text = "-";
-            SubfamilyEntry.Text = "-";
-            _partInfo = null;
-            _workOrderContext = null;
-            _maxQuantity = null;
         }
     }
 }
