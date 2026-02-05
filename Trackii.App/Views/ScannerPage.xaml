@@ -37,7 +37,6 @@
                     </HorizontalStackLayout>
                 </Frame>
             </Grid>
-        </Frame>
 
         <Frame Grid.Row="2" Padding="12" CornerRadius="18" HasShadow="False" BorderColor="#E2E8F0" BackgroundColor="#FFFFFF">
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
