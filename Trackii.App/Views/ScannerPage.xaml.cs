@@ -166,6 +166,9 @@ namespace Trackii.App.Views
                 _nativeDetectionEvent = null;
                 _nativeDetectionHandler = null;
             }
+
+            var handler = Delegate.CreateDelegate(eventInfo.EventHandlerType!, this, nameof(OnNativeBarcodesDetected));
+            eventInfo.AddEventHandler(instance, handler);
         }
 
         private Delegate CreateDetectionDelegate(Type delegateType)
