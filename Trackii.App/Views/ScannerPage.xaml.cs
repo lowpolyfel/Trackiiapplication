@@ -4,8 +4,6 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Trackii.App.Services;
-using ZXing.Net.Maui;
-using ZXing.Net.Maui.Controls;
 
 namespace Trackii.App.Views
 {
@@ -160,7 +158,6 @@ namespace Trackii.App.Views
             {
                 return null;
             }
-        }
 
         private static Type? ResolveCameraViewType()
         {
